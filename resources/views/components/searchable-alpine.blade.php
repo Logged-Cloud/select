@@ -15,6 +15,8 @@
     'required' => false,
     'disabled' => false,
     'error' => null,
+    'searchUrl' => null,
+    'debounceMs' => null,
 ])
 @php
     // ID derives from label when present (camelCased) so the markup gets
@@ -63,11 +65,14 @@
         'searchId' => $searchId,
         'liveId' => $liveId,
         'triggerId' => $triggerId,
+        'searchUrl' => $searchUrl,
+        'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
         'a11y' => [
             'options_available' => 'options available',
             'no_options' => 'No options.',
             'selected' => 'Selected',
             'cleared' => 'Selection cleared',
+            'loading' => 'Searching…',
         ],
     ];
 @endphp
@@ -167,24 +172,28 @@
     <div x-show="open" x-cloak x-transition.opacity.duration.100ms class="lc-select__menu">
         <div class="lc-select__sheet-handle" aria-hidden="true"></div>
         @if ($searchable)
-            <input type="text"
-                   id="{{ $searchId }}"
-                   x-ref="search" x-model="query"
-                   class="lc-select__search"
-                   placeholder="{{ $searchLabel }}"
-                   role="searchbox"
-                   aria-controls="{{ $listboxId }}"
-                   aria-label="{{ $searchLabel }}"
-                   :aria-activedescendant="activeOptionId()"
-                   autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                   @keydown.arrow-down.prevent="move(1)"
-                   @keydown.arrow-up.prevent="move(-1)"
-                   @keydown.home.prevent="cursor = 0"
-                   @keydown.end.prevent="cursor = filtered.length - 1"
-                   @keydown.page-down.prevent="cursor = Math.min(cursor + 5, filtered.length - 1)"
-                   @keydown.page-up.prevent="cursor = Math.max(cursor - 5, 0)"
-                   @keydown.enter.prevent="pickAt(cursor)"
-                   @keydown.tab="close()">
+            <div class="lc-select__search-row">
+                <input type="text"
+                       id="{{ $searchId }}"
+                       x-ref="search" x-model="query"
+                       class="lc-select__search"
+                       placeholder="{{ $searchLabel }}"
+                       role="searchbox"
+                       aria-controls="{{ $listboxId }}"
+                       aria-label="{{ $searchLabel }}"
+                       :aria-activedescendant="activeOptionId()"
+                       :aria-busy="loading"
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                       @keydown.arrow-down.prevent="move(1)"
+                       @keydown.arrow-up.prevent="move(-1)"
+                       @keydown.home.prevent="cursor = 0"
+                       @keydown.end.prevent="cursor = filtered.length - 1"
+                       @keydown.page-down.prevent="cursor = Math.min(cursor + 5, filtered.length - 1)"
+                       @keydown.page-up.prevent="cursor = Math.max(cursor - 5, 0)"
+                       @keydown.enter.prevent="pickAt(cursor)"
+                       @keydown.tab="close()">
+                <span class="lc-select__spinner" x-show="loading" x-cloak aria-hidden="true"></span>
+            </div>
         @endif
         <ul class="lc-select__list"
             id="{{ $listboxId }}"
@@ -267,6 +276,10 @@
                         open: false,
                         cursor: 0,
                         liveMessage: '',
+                        searchUrl: config.searchUrl || null,
+                        debounceMs: config.debounceMs,
+                        loading: false,
+                        _remote: null,
 
                         get filtered() {
                             return window.lcRankItems(this.items, this.query);
@@ -385,6 +398,24 @@
                                 const min = this.allowEmpty ? -1 : 0;
                                 if (this.cursor < min) this.cursor = min;
                             });
+
+                            if (this.searchUrl) {
+                                this._remote = window.lcMakeRemoteSearch({
+                                    url: () => this.searchUrl,
+                                    debounceMs: () => this.debounceMs ?? 250,
+                                    onLoading: (v) => { this.loading = v; if (v) this.liveMessage = this.a11y.loading || 'Searching…'; },
+                                    onResult: (items) => {
+                                        this.items = (items || []).map((o) => ({
+                                            key: String(o.key ?? ''),
+                                            title: String(o.title ?? ''),
+                                            subtitle: String(o.subtitle ?? ''),
+                                            svg: String(o.svg ?? ''),
+                                        }));
+                                        this.cursor = this.allowEmpty ? -1 : 0;
+                                    },
+                                });
+                                this.$watch('query', (q) => this._remote.queue(q));
+                            }
                         },
                     }));
                 });

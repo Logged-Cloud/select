@@ -62,6 +62,58 @@
             }[c]));
         };
 
+        // Remote search hook · debounced fetch with AbortController so only
+         // the latest query's response wins. Returns a controller object
+         // that the variant's Alpine data wires into its $watch('query').
+        //
+        // config callbacks (passed as fns so the host can read live state):
+        //   url()         · resolves to the URL to hit, or '' to skip
+        //   debounceMs()  · ms to debounce (default 250)
+        //   onResult(items) · receives the parsed JSON body
+        //   onLoading(bool) · toggled around the in-flight window
+        //   onError(err)    · optional; defaults to console.error
+        window.lcMakeRemoteSearch = function (config) {
+            let timer = null;
+            let ctrl = null;
+            const fail = config.onError || ((e) => console.error('[lc-select] search:', e));
+            const ctl = {
+                queue(query) {
+                    if (timer) clearTimeout(timer);
+                    if (!config.url()) return;
+                    timer = setTimeout(() => ctl.run(query), config.debounceMs() || 250);
+                },
+                run(query) {
+                    const base = config.url();
+                    if (!base) return;
+                    if (ctrl) ctrl.abort();
+                    ctrl = new AbortController();
+                    config.onLoading && config.onLoading(true);
+                    const sep = base.indexOf('?') >= 0 ? '&' : '?';
+                    const url = base + sep + 'q=' + encodeURIComponent(query || '');
+                    fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } })
+                        .then((r) => {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.json();
+                        })
+                        .then((items) => {
+                            config.onResult && config.onResult(Array.isArray(items) ? items : (items.items || []));
+                            config.onLoading && config.onLoading(false);
+                        })
+                        .catch((e) => {
+                            if (e && e.name === 'AbortError') return;
+                            fail(e);
+                            config.onLoading && config.onLoading(false);
+                        });
+                },
+                cancel() {
+                    if (timer) { clearTimeout(timer); timer = null; }
+                    if (ctrl) { ctrl.abort(); ctrl = null; }
+                    config.onLoading && config.onLoading(false);
+                },
+            };
+            return ctl;
+        };
+
         // Wrap match ranges in <mark class="lc-select__match"> · merges any
         // overlapping ranges first so we never emit nested or duplicate
         // <mark> elements.
