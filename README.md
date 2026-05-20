@@ -23,8 +23,34 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | `map-svg-alpine` (country detail) | <img src="docs/images/map-uk.png" width="280" alt="map-uk"> | — | — | UK outline + city points |
 | `map-svg-alpine` drilldown | <img src="docs/images/map-drilldown.png" width="280" alt="map-drilldown"> | — | — | world → country → town via `depends-on` |
 | [`map-drilldown-alpine`](#x-selectmap-drilldown-alpine) | <img src="docs/images/map-drilldown-single.png" width="280" alt="map-drilldown-single"> | — | — | single trigger, menu swaps as user drills in |
+| [`tree-alpine`](#x-selecttree-alpine) | <img src="docs/images/tree-alpine.png" width="280" alt="tree-alpine"> | — | — | hierarchical list · expand/collapse, roving tabindex |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v3.3 highlights · `tree-alpine` (hierarchical select)
+
+- **New variant `tree-alpine`** · items can carry `children` recursively to build any depth of hierarchy. Each branch row gets a twisty button; clicking expands/collapses, clicking a leaf picks it.
+- **WAI-ARIA `tree` / `treeitem`** with `aria-level`, `aria-expanded`, `aria-selected`. Arrow Down/Up moves through visible rows, Arrow Right expands a collapsed branch (or moves to first child), Arrow Left collapses an expanded branch (or moves to parent), Home/End jump to ends, Enter / Space picks (or toggles a branch when `leaves-only`).
+- **Re-opening restores ancestors** of the previously-picked leaf so the user lands on what they chose.
+- **`:expanded-depth`** prop auto-expands the first N depths so the tree opens already showing structure rather than as one collapsed root.
+- **`:leaves-only`** (default `true`) restricts picks to leaf nodes. Set `false` to allow picking a branch too.
+
+```blade
+<x-select::tree-alpine
+    name="taxonomy"
+    :items="$tree"
+    label="Pick an item"
+    :expanded-depth="1" />
+
+{{-- items shape: --}}
+[
+    ['key' => 'animals', 'title' => 'Animals', 'children' => [
+        ['key' => 'reptiles', 'title' => 'Reptiles', 'children' => [
+            ['key' => 'ball-python', 'title' => 'Ball python'],
+        ]],
+    ]],
+]
+```
 
 ### v3.2 highlights · single-trigger map drilldown
 

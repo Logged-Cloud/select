@@ -327,6 +327,53 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── tree-alpine (v3.3 · hierarchical expand-collapse) ─────────────
+
+test('tree-alpine renders WAI-ARIA tree + treeitem roles with depth levels', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tree-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="tree"')
+        ->and($tpl)->toContain('role="treeitem"')
+        ->and($tpl)->toContain(':aria-level="{{ $node[\'depth\'] + 1 }}"')
+        ->and($tpl)->toContain(':aria-expanded="expanded[');
+});
+
+test('tree-alpine ships keyboard handlers for arrow / home / end / enter', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tree-alpine.blade.php');
+    expect($tpl)
+        ->toContain('@keydown.arrow-down.prevent="moveCursor(1)"')
+        ->and($tpl)->toContain('@keydown.arrow-right.prevent="onRight()"')
+        ->and($tpl)->toContain('@keydown.arrow-left.prevent="onLeft()"')
+        ->and($tpl)->toContain('@keydown.home.prevent="cursor = 0"')
+        ->and($tpl)->toContain('@keydown.enter.prevent="pickActive()"');
+});
+
+test('tree-alpine flattens nested items + tracks parent-child via childrenMap', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tree-alpine.blade.php');
+    expect($tpl)
+        ->toContain('$normalise = function ($items, $depth, &$flat)')
+        ->and($tpl)->toContain('isVisible(idx)')
+        ->and($tpl)->toContain('_expandAncestors(idx)');
+});
+
+test('tree-alpine has leavesOnly + expandedDepth props', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tree-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'expandedDepth' => 0")
+        ->and($tpl)->toContain("'leavesOnly' => true");
+});
+
+test('styles ship a complete lc-tree block with forced-colors fallback', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-tree', '.lc-tree__row', '.lc-tree__twisty', '.lc-tree__leaf-dot',
+        '.lc-tree__title', '.lc-tree__indent',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+    expect($css)->toMatch('/\.lc-tree__row\.is-selected\s*{\s*background:\s*Highlight/s');
+});
+
 // ─── map-drilldown-alpine · single-trigger zoom-in (v3.2) ──────────
 
 test('map-drilldown-alpine pre-renders every level SVG and toggles via x-show', function () {
