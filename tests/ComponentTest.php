@@ -327,6 +327,73 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── map-svg-alpine + bundled datasets (v3.0) ──────────────────────
+
+test('map-svg-alpine ships role=combobox + role=listbox + server-rendered SVG children', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-svg-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="combobox"')
+        ->and($tpl)->toContain('role="listbox"')
+        // SVG paths/circles rendered via Blade @foreach · Alpine x-for inside
+        // <svg> creates HTML-namespace nodes that the browser ignores.
+        ->and($tpl)->toContain('@foreach ($normalised as $i => $opt)')
+        ->and($tpl)->toContain('<path id="{{ $optId }}"')
+        ->and($tpl)->toContain('<circle id="{{ $optId }}"')
+        ->and($tpl)->toContain('class="lc-map__item"')
+        ->and($tpl)->toContain('class="lc-map__point"');
+});
+
+test('map-svg-alpine supports dataset shortcut + bundled MapData helper', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-svg-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'dataset' => null")
+        ->and($tpl)->toContain('\\LoggedCloud\\Select\\MapData::world()')
+        ->and($tpl)->toContain('\\LoggedCloud\\Select\\MapData::uk()')
+        ->and($tpl)->toContain('\\LoggedCloud\\Select\\MapData::ukTowns(');
+});
+
+test('bundled MapData class loads world / uk / uk-towns JSON', function () {
+    require_once __DIR__.'/../src/MapData.php';
+    $world = \LoggedCloud\Select\MapData::world();
+    expect($world)->toHaveKeys(['viewBox', 'items']);
+    expect(count($world['items']))->toBeGreaterThan(150); // 177 countries
+    expect($world['items'][0])->toHaveKeys(['key', 'title', 'path']);
+
+    $uk = \LoggedCloud\Select\MapData::uk();
+    expect($uk)->toHaveKeys(['viewBox', 'outline', 'items']);
+    expect($uk['items'][0])->toHaveKeys(['key', 'title', 'cx', 'cy']);
+
+    $london = \LoggedCloud\Select\MapData::ukTowns('london');
+    expect($london)->toHaveKeys(['viewBox', 'items']);
+    expect(count($london['items']))->toBeGreaterThan(5);
+});
+
+test('map-svg-alpine inherits depends-on + Alpine destroy + body-scroll lock', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-svg-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'dependsOn' => null")
+        ->and($tpl)->toContain('get isLocked()')
+        ->and($tpl)->toContain('destroy()')
+        ->and($tpl)->toContain('window.lcLockBodyScroll')
+        ->and($tpl)->toContain('window.lcSafeId');
+});
+
+test('map-svg-alpine includes the no-JS fallback partial', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-svg-alpine.blade.php');
+    expect($tpl)->toContain("@include('select::partials.fallback'");
+});
+
+test('styles ship a complete lc-map block with forced-colors fallbacks', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-map', '.lc-map__outline', '.lc-map__item', '.lc-map__point',
+        '.lc-map__hover', '.lc-select__menu--map',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+    expect($css)->toMatch('/\.lc-map__item\s*{\s*fill:\s*Canvas/s');
+});
+
 // ─── R.A.P on v2.10 additions (v2.11) ──────────────────────────────
 
 test('card pager sits outside the radiogroup wrapper (WAI-ARIA correctness)', function () {
