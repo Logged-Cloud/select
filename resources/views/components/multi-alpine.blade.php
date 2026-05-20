@@ -324,8 +324,7 @@
                         },
 
                         optionId(key) {
-                            const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
-                            return this.listboxId + '__opt-' + safe;
+                            return this.listboxId + '__opt-' + window.lcSafeId(key);
                         },
 
                         currentIndex() {
@@ -349,6 +348,10 @@
                             this.open = true;
                             this.cursor = Math.max(0, Math.min(cursor, this.visible.length - 1));
                             this.announceResults();
+                            if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+                                window.lcLockBodyScroll();
+                                this._lockedScroll = true;
+                            }
                             if (this.searchable) {
                                 this.$nextTick(() => this.$refs.search?.focus());
                             }
@@ -362,6 +365,10 @@
                             this.cursor = 0;
                             this.searchError = '';
                             if (this._remote) this._remote.cancel();
+                            if (this._lockedScroll) {
+                                window.lcUnlockBodyScroll();
+                                this._lockedScroll = false;
+                            }
                             this.focusTrigger();
                         },
 
@@ -384,9 +391,11 @@
 
                         announceResults() {
                             const n = this.filtered.length;
-                            this.liveMessage = n === 0
+                            const msg = n === 0
                                 ? (this.a11y.no_options || 'No options.')
                                 : n + ' ' + (this.a11y.options_available || 'options available');
+                            this._announce ??= window.lcMakeAnnouncer((m) => { this.liveMessage = m; });
+                            this._announce(msg);
                         },
 
                         toggleAt(i) {

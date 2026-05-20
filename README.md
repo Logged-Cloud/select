@@ -20,6 +20,12 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v2.9 highlights (final R.A.P pass)
+
+- **Robust:** transient `5xx` / network failures get one automatic retry with a 200ms gap before surfacing as an error. `optionId` routes through `window.lcSafeId` (escapes input underscores first so `"héllo"` and `"h_e9llo"` keys can no longer collide on the DOM id). On viewports ≤ 640px, opening the menu also locks `document.documentElement` scroll (reference-counted) so the page doesn't slide under the user's thumb on iOS.
+- **Accessible:** live-region announcements are throttled via `window.lcMakeAnnouncer` (~280ms coalesce) so fast typing no longer chatters in JAWS / NVDA. `.lc-select__more-row` gained a `forced-colors` block that pins it to `CanvasText` / `Canvas` with a top divider.
+- **Perf:** ranking now reads from a per-items `WeakMap` of pre-lowercased title / subtitle / key strings · we lowercase once when an items array first lands and reuse those strings for every subsequent query against it. Memo from v2.8 still short-circuits the no-change case on top.
+
 ### v2.8 highlights
 
 - **Memoized filter pipeline.** `window.lcMakeFilter` caches the last `(items, query)` pair and short-circuits the ranking + highlight work when Alpine re-invokes the `filtered` getter without inputs having changed. Meaningful on large lists where the O(items × tokens) work was running per render tick.
