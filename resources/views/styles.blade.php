@@ -150,6 +150,37 @@
     font-size: .85rem;
     min-height: 1.2em;
 }
+.lc-map__crumbs {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .5rem .25rem;
+    font-size: .85rem;
+    color: var(--lc-ink-dim);
+    border-bottom: 1px solid var(--lc-border);
+    margin-bottom: .35rem;
+}
+.lc-map__back {
+    background: transparent;
+    border: 1px solid var(--lc-border);
+    color: var(--lc-ink);
+    border-radius: 999px;
+    padding: .25rem .4rem;
+    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+}
+.lc-map__back:hover { background: var(--lc-hover-bg); }
+.lc-map__back:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+}
+.lc-map__crumb { display: inline-flex; align-items: center; gap: .35rem; }
+.lc-map__crumb-sep { opacity: .55; }
+.lc-map__crumb-active { color: var(--lc-ink); font-weight: 500; }
+@media (forced-colors: active) {
+    .lc-map__back { border-color: CanvasText; }
+}
 @media (forced-colors: active) {
     .lc-map__item { fill: Canvas; stroke: CanvasText; }
     .lc-map__item.is-selected { fill: Highlight; }

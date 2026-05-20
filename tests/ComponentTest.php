@@ -327,6 +327,39 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── map-drilldown-alpine · single-trigger zoom-in (v3.2) ──────────
+
+test('map-drilldown-alpine pre-renders every level SVG and toggles via x-show', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-drilldown-alpine.blade.php');
+    expect($tpl)
+        ->toContain('@foreach ($resolvedLevels as $i => $level)')
+        ->and($tpl)->toContain('x-show="currentLevel === {{ $i }}"')
+        ->and($tpl)->toContain('lc-map__crumbs')
+        ->and($tpl)->toContain('lc-map__back')
+        ->and($tpl)->toContain('@click="pick({{ $i }}, {{ $j }})"');
+});
+
+test('map-drilldown level resolution honours requires + cleans deeper values', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-drilldown-alpine.blade.php');
+    expect($tpl)
+        ->toContain('_levelEnabled(i)')
+        ->and($tpl)->toContain("delete this.values[this.levels[j].name]")
+        ->and($tpl)->toContain('summary()');
+});
+
+test('map-drilldown emits one hidden input per level for form posts', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-drilldown-alpine.blade.php');
+    expect($tpl)->toContain('@foreach ($resolvedLevels as $level)');
+    expect($tpl)->toContain('<input type="hidden" name="{{ $level[\'name\'] }}"');
+});
+
+test('styles ship a lc-map__crumbs + back-button block', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach (['.lc-map__crumbs', '.lc-map__back', '.lc-map__crumb-sep', '.lc-map__crumb-active'] as $hook) {
+        expect($css)->toContain($hook);
+    }
+});
+
 // ─── map-svg-alpine + bundled datasets (v3.0) ──────────────────────
 
 test('map-svg-alpine ships role=combobox + role=listbox + server-rendered SVG children', function () {
@@ -359,9 +392,17 @@ test('bundled MapData class loads world / uk / uk-towns JSON', function () {
     expect(count($world['items']))->toBeGreaterThan(150); // 177 countries
     expect($world['items'][0])->toHaveKeys(['key', 'title', 'path']);
 
+    // v3.1 · uk.json is now region polygons (not city dots), so items
+    // carry `path` (not `cx`/`cy`) and there's no top-level outline.
     $uk = \LoggedCloud\Select\MapData::uk();
-    expect($uk)->toHaveKeys(['viewBox', 'outline', 'items']);
-    expect($uk['items'][0])->toHaveKeys(['key', 'title', 'cx', 'cy']);
+    expect($uk)->toHaveKeys(['viewBox', 'items']);
+    expect($uk['items'][0])->toHaveKeys(['key', 'title', 'path']);
+    expect(count($uk['items']))->toBe(16);
+
+    // v3.1 · per-region datasets resolve via ukRegion('greater-london') etc.
+    $london = \LoggedCloud\Select\MapData::ukRegion('greater-london');
+    expect($london)->toHaveKeys(['viewBox', 'items']);
+    expect(count($london['items']))->toBe(33); // London boroughs
 
     $london = \LoggedCloud\Select\MapData::ukTowns('london');
     expect($london)->toHaveKeys(['viewBox', 'items']);
@@ -857,6 +898,8 @@ test('every variant derives the id from the label as camelCase', function () {
     $dir = __DIR__.'/../resources/views/components';
     foreach (glob($dir.'/*.blade.php') as $path) {
         $tpl = file_get_contents($path);
+        // map-drilldown derives its id from the same Str::camel pattern but
+        // its full check happens through the resolvedLevels helpers.
         expect($tpl)
             ->toContain('Str::camel')
             ->and($tpl)->toContain('Str::slug');
