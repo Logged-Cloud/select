@@ -327,6 +327,64 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── R.A.P on v2.10 additions (v2.11) ──────────────────────────────
+
+test('card pager sits outside the radiogroup wrapper (WAI-ARIA correctness)', function () {
+    $single = file_get_contents(__DIR__.'/../resources/views/components/card-single-alpine.blade.php');
+    $multi  = file_get_contents(__DIR__.'/../resources/views/components/card-multi-alpine.blade.php');
+
+    // Outer wrapper hosts x-data; inner div holds the role.
+    expect($single)->toContain('class="lc-cards-host"');
+    expect($multi)->toContain('class="lc-cards-host"');
+
+    // The pager <nav> must appear AFTER the closing </div> of the role-
+    // bearing inner block · check that </div> sits immediately before <nav.
+    foreach (['card-single-alpine' => $single, 'card-multi-alpine' => $multi] as $name => $tpl) {
+        // `</template>` closes the x-for loop · the next `</div>` closes the
+        // role-bearing div · then the pager nav must follow (with optional
+        // whitespace + blade comments between).
+        $matched = preg_match('#</template>\s*</div>[\s\S]{0,400}?<nav[\s\S]*?class="lc-cards__pager"#', $tpl);
+        expect($matched)->toBe(1, "{$name} pager must sit outside the role-bearing div");
+    }
+});
+
+test('card variants jump to the page containing the initial selection', function () {
+    foreach (['card-single-alpine', 'card-multi-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('Math.floor(idx / this.pageSize)')
+            ->and($tpl)->toContain("this.\$watch('items'");
+    }
+});
+
+test('card pager buttons move focus into the new page after click', function () {
+    foreach (['card-single-alpine', 'card-multi-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('const first = this.visible[0]')
+            ->and($tpl)->toContain('document.getElementById(this.optionId(first.key))?.focus()');
+    }
+});
+
+test('depends-on variants register a destroy() hook that removes the document listener', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('destroy()')
+            ->and($tpl)->toContain("document.removeEventListener('change', this._parentListener)");
+    }
+});
+
+test('depends-on variants announce the auto-clear on the live region', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain("'parent_changed'")
+            ->and($tpl)->toContain("'parent_unset'")
+            ->and($tpl)->toContain('this.liveMessage = this.a11y.parent_changed');
+    }
+});
+
 // ─── features (v2.10 · card pagination + depends-on) ──────────────
 
 test('card variants accept page-size and render a prev/next pager', function () {

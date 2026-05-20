@@ -69,6 +69,8 @@
             'loading' => 'Searching…',
             'search_failed' => 'Search failed. Try again.',
             'no_options' => 'No suggestions.',
+            'parent_changed' => 'Tags cleared because the parent changed.',
+            'parent_unset' => 'Tags cleared. Parent is no longer set.',
         ],
     ];
 @endphp
@@ -306,13 +308,27 @@
                             const el = document.querySelector('[name="' + this.dependsOn + '"]');
                             const next = el ? String(el.value || '') : '';
                             if (next === this.parentValue) return;
+                            const wasSet = !!this.parentValue;
+                            const hadValues = this.values.length > 0;
                             this.parentValue = next;
-                            if (this.values.length > 0) {
+                            if (hadValues) {
                                 this.values = [];
                                 this.$nextTick(() => {
                                     this.$el.querySelectorAll('input[type=hidden]').forEach((el) =>
                                         el.dispatchEvent(new Event('change', { bubbles: true })));
                                 });
+                                if (wasSet && next) {
+                                    this.liveMessage = this.a11y.parent_changed || 'Tags cleared.';
+                                } else if (wasSet && !next) {
+                                    this.liveMessage = this.a11y.parent_unset || this.dependsMessage || 'Tags cleared.';
+                                }
+                            }
+                        },
+
+                        destroy() {
+                            if (this._parentListener) {
+                                document.removeEventListener('change', this._parentListener);
+                                this._parentListener = null;
                             }
                         },
 

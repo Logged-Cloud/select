@@ -38,15 +38,13 @@
         'pageSize' => is_numeric($pageSize) ? (int) $pageSize : 0,
     ];
 @endphp
+{{-- Wrapper hosts x-data so the pager can live outside the radiogroup ·
+     role=radiogroup must only have role=radio children to satisfy WAI-ARIA. --}}
 <div x-data="loggedCloudCardSingle({{ \Illuminate\Support\Js::from($config) }})"
      x-init="$nextTick(() => { if ($refs.fallback) { $refs.fallback.name = ''; } })"
-     class="lc-cards"
+     class="lc-cards-host"
      id="{{ $groupId }}"
-     style="--lc-icon-size: {{ $iconSize }}; --lc-cell-min: {{ $minWidth }};"
-     role="radiogroup"
-     @if ($label) aria-label="{{ $label }}" @endif
-     @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
-     @if ($required) aria-required="true" @endif>
+     style="--lc-icon-size: {{ $iconSize }}; --lc-cell-min: {{ $minWidth }};">
 
     @include('select::partials.fallback', [
         'name' => $name, 'items' => $normalised, 'selected' => $selected,
@@ -57,6 +55,11 @@
     <input type="hidden" name="{{ $name }}" :value="value" x-ref="hidden"
            @if ($required) required @endif>
 
+    <div class="lc-cards"
+         role="radiogroup"
+         @if ($label) aria-label="{{ $label }}" @endif
+         @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
+         @if ($required) aria-required="true" @endif>
     <template x-for="(opt, i) in visible" :key="opt.key">
         <button type="button"
                 :id="optionId(opt.key)"
@@ -93,10 +96,10 @@
             <span class="lc-cards__subtitle" x-show="opt.subtitle" x-text="opt.subtitle"></span>
         </button>
     </template>
+    </div>
 
-    {{-- Pagination controls · only render when page-size is set and there is
-         more than one page. Lives outside the radiogroup so it doesn't show
-         up to assistive tech as a fake card. --}}
+    {{-- Pagination controls · sibling of the radiogroup (not a child) so the
+         WAI-ARIA "role=radiogroup must only contain role=radio" contract holds. --}}
     <nav x-show="pageSize > 0 && pageCount > 1" x-cloak class="lc-cards__pager" aria-label="Pagination">
         <button type="button" class="lc-cards__page-btn" :disabled="page === 0" @click="prevPage()" aria-label="Previous page">‹ Prev</button>
         <span class="lc-cards__page-status" aria-live="polite">
@@ -124,6 +127,22 @@
                         value: config.selected || '',
                         pageSize: config.pageSize || 0,
                         page: 0,
+
+                        init() {
+                            // If something is already selected, open on the
+                            // page containing it · saves the user the click.
+                            if (this.value && this.pageSize > 0) {
+                                const idx = this.items.findIndex((o) => o.key === this.value);
+                                if (idx >= 0) this.page = Math.floor(idx / this.pageSize);
+                            }
+                            // Clamp page when items shrink (e.g. a remote
+                            // refresh) so we never render an empty page.
+                            this.$watch('items', () => {
+                                if (this.page >= this.pageCount) {
+                                    this.page = Math.max(0, this.pageCount - 1);
+                                }
+                            });
+                        },
 
                         get pageCount() {
                             if (this.pageSize <= 0) return 1;
@@ -179,8 +198,25 @@
                             this.focusIndex(i + delta);
                         },
 
-                        prevPage() { if (this.page > 0) this.page--; },
-                        nextPage() { if (this.page < this.pageCount - 1) this.page++; },
+                        prevPage() {
+                            if (this.page <= 0) return;
+                            this.page--;
+                            // Move focus into the new page so keyboard arrow
+                            // navigation continues naturally from a card,
+                            // not from the pager button.
+                            this.$nextTick(() => {
+                                const first = this.visible[0];
+                                if (first) document.getElementById(this.optionId(first.key))?.focus();
+                            });
+                        },
+                        nextPage() {
+                            if (this.page >= this.pageCount - 1) return;
+                            this.page++;
+                            this.$nextTick(() => {
+                                const first = this.visible[0];
+                                if (first) document.getElementById(this.optionId(first.key))?.focus();
+                            });
+                        },
                     }));
                 });
             })();

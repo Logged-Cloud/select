@@ -47,15 +47,13 @@
         ],
     ];
 @endphp
+{{-- Wrapper hosts x-data so the pager can sit alongside the radiogroup
+     (here a multi-select role=group) without polluting the grid layout. --}}
 <div x-data="loggedCloudCardMulti({{ \Illuminate\Support\Js::from($config) }})"
      x-init="$nextTick(() => { if ($refs.fallback) { $refs.fallback.name = ''; } })"
-     class="lc-cards lc-cards--multi"
+     class="lc-cards-host"
      id="{{ $groupId }}"
-     style="--lc-icon-size: {{ $iconSize }}; --lc-cell-min: {{ $minWidth }};"
-     role="group"
-     @if ($label) aria-label="{{ $label }}" @endif
-     @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
-     @if ($required) aria-required="true" @endif>
+     style="--lc-icon-size: {{ $iconSize }}; --lc-cell-min: {{ $minWidth }};">
 
     @include('select::partials.fallback', [
         'name' => $name, 'items' => $normalised, 'selected' => $selectedKeys,
@@ -67,6 +65,11 @@
         <input type="hidden" :name="@js($name).concat('[]')" :value="key">
     </template>
 
+    <div class="lc-cards lc-cards--multi"
+         role="group"
+         @if ($label) aria-label="{{ $label }}" @endif
+         @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
+         @if ($required) aria-required="true" @endif>
     <template x-for="(opt, i) in visible" :key="opt.key">
         <button type="button"
                 :id="optionId(opt.key)"
@@ -95,6 +98,7 @@
             <span class="lc-cards__subtitle" x-show="opt.subtitle" x-text="opt.subtitle"></span>
         </button>
     </template>
+    </div>
 
     <nav x-show="pageSize > 0 && pageCount > 1" x-cloak class="lc-cards__pager" aria-label="Pagination">
         <button type="button" class="lc-cards__page-btn" :disabled="page === 0" @click="prevPage()" aria-label="Previous page">‹ Prev</button>
@@ -140,8 +144,36 @@
                             return this.items.slice(start, start + this.pageSize);
                         },
 
-                        prevPage() { if (this.page > 0) this.page--; },
-                        nextPage() { if (this.page < this.pageCount - 1) this.page++; },
+                        prevPage() {
+                            if (this.page <= 0) return;
+                            this.page--;
+                            this.$nextTick(() => {
+                                const first = this.visible[0];
+                                if (first) document.getElementById(this.optionId(first.key))?.focus();
+                            });
+                        },
+                        nextPage() {
+                            if (this.page >= this.pageCount - 1) return;
+                            this.page++;
+                            this.$nextTick(() => {
+                                const first = this.visible[0];
+                                if (first) document.getElementById(this.optionId(first.key))?.focus();
+                            });
+                        },
+
+                        init() {
+                            // Jump to the page containing the first selected
+                            // value if any · gives the user immediate context.
+                            if (this.values.length > 0 && this.pageSize > 0) {
+                                const idx = this.items.findIndex((o) => o.key === this.values[0]);
+                                if (idx >= 0) this.page = Math.floor(idx / this.pageSize);
+                            }
+                            this.$watch('items', () => {
+                                if (this.page >= this.pageCount) {
+                                    this.page = Math.max(0, this.pageCount - 1);
+                                }
+                            });
+                        },
 
                         optionId(key) {
                             return this.groupId + '__opt-' + window.lcSafeId(key);

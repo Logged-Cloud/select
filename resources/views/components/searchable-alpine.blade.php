@@ -86,6 +86,8 @@
             'cleared' => 'Selection cleared',
             'loading' => 'Searching…',
             'search_failed' => 'Search failed. Try again.',
+            'parent_changed' => 'Selection cleared because the parent changed.',
+            'parent_unset' => 'Selection cleared. Parent is no longer set.',
         ],
     ];
 @endphp
@@ -346,16 +348,35 @@
                             const el = document.querySelector('[name="' + this.dependsOn + '"]');
                             const next = el ? String(el.value || '') : '';
                             if (next === this.parentValue) return;
+                            const wasSet = !!this.parentValue;
+                            const hadValue = !!this.value;
                             this.parentValue = next;
-                            // Clear our own selection when the parent changes ·
-                            // the previously-selected child may not exist under
-                            // the new parent.
-                            if (this.value) {
+                            if (hadValue) {
+                                // Clear our own selection · the previously-
+                                // selected child may not exist under the new
+                                // parent.
                                 this.value = '';
                                 this.selected = null;
                                 if (this.$refs.hidden) {
                                     this.$refs.hidden.dispatchEvent(new Event('change', { bubbles: true }));
                                 }
+                                // Announce the auto-clear so SR users aren't
+                                // surprised that their picked value vanished.
+                                if (wasSet && next) {
+                                    this.liveMessage = this.a11y.parent_changed || 'Selection cleared.';
+                                } else if (wasSet && !next) {
+                                    this.liveMessage = this.a11y.parent_unset || this.dependsMessage || 'Selection cleared.';
+                                }
+                            }
+                        },
+
+                        destroy() {
+                            // Alpine calls destroy() when the node is removed
+                            // (Livewire navigation, etc) · detach the document
+                            // listener so no zombie callbacks keep firing.
+                            if (this._parentListener) {
+                                document.removeEventListener('change', this._parentListener);
+                                this._parentListener = null;
                             }
                         },
 
