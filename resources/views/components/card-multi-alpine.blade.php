@@ -10,6 +10,7 @@
     'minWidth' => '12rem',
     'iconSize' => '2.5rem',
     'max' => null,
+    'pageSize' => 0,
 ])
 @php
     $groupId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -38,6 +39,7 @@
         'selected' => $selectedKeys,
         'groupId' => $groupId,
         'max' => is_numeric($max) ? (int) $max : null,
+        'pageSize' => is_numeric($pageSize) ? (int) $pageSize : 0,
         'a11y' => [
             'added' => 'Added',
             'removed' => 'Removed',
@@ -65,7 +67,7 @@
         <input type="hidden" :name="@js($name).concat('[]')" :value="key">
     </template>
 
-    <template x-for="(opt, i) in items" :key="opt.key">
+    <template x-for="(opt, i) in visible" :key="opt.key">
         <button type="button"
                 :id="optionId(opt.key)"
                 :aria-pressed="isSelected(opt.key) ? 'true' : 'false'"
@@ -94,10 +96,21 @@
         </button>
     </template>
 
+    <nav x-show="pageSize > 0 && pageCount > 1" x-cloak class="lc-cards__pager" aria-label="Pagination">
+        <button type="button" class="lc-cards__page-btn" :disabled="page === 0" @click="prevPage()" aria-label="Previous page">‹ Prev</button>
+        <span class="lc-cards__page-status" aria-live="polite">
+            Page <span x-text="page + 1"></span> of <span x-text="pageCount"></span>
+        </span>
+        <button type="button" class="lc-cards__page-btn" :disabled="page >= pageCount - 1" @click="nextPage()" aria-label="Next page">Next ›</button>
+    </nav>
+
     <div :id="groupId+'-live'" class="lc-select__live" aria-live="polite" aria-atomic="true" x-text="liveMessage"></div>
 
     @once
         @include('select::styles')
+    @endonce
+    @once
+        @include('select::partials.search-helpers')
     @endonce
     @once
         <script data-lc-card-multi-alpine>
@@ -113,10 +126,25 @@
                         a11y: config.a11y || {},
                         values: Array.isArray(config.selected) ? [...config.selected] : [],
                         liveMessage: '',
+                        pageSize: config.pageSize || 0,
+                        page: 0,
+
+                        get pageCount() {
+                            if (this.pageSize <= 0) return 1;
+                            return Math.max(1, Math.ceil(this.items.length / this.pageSize));
+                        },
+
+                        get visible() {
+                            if (this.pageSize <= 0) return this.items;
+                            const start = this.page * this.pageSize;
+                            return this.items.slice(start, start + this.pageSize);
+                        },
+
+                        prevPage() { if (this.page > 0) this.page--; },
+                        nextPage() { if (this.page < this.pageCount - 1) this.page++; },
 
                         optionId(key) {
-                            const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
-                            return this.groupId + '__opt-' + safe;
+                            return this.groupId + '__opt-' + window.lcSafeId(key);
                         },
 
                         isSelected(key) {

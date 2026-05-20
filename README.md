@@ -17,8 +17,24 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | [`card-multi-alpine`](#x-selectcard-multi-alpine) | <img src="docs/images/card-multi-alpine.png" width="280" alt="card-multi-alpine"> | — | ✓ | big visual cards · toggle-button group |
 | [`tags-alpine`](#x-selecttags-alpine) | <img src="docs/images/tags-alpine.png" width="280" alt="tags-alpine"> | ✓ client | ✓ chips | free-form tag entry · combobox + listbox |
 | `searchable-alpine` + `:search-url` | <img src="docs/images/searchable-remote.png" width="280" alt="searchable-remote"> | ✓ remote | — | same component, debounced server-side search |
+| `card-single-alpine` + `:page-size` | <img src="docs/images/card-paginated.png" width="280" alt="card-paginated"> | — | — | same component, prev/next pagination |
+| `searchable-alpine` + `:depends-on` | <img src="docs/images/depends-on.png" width="280" alt="depends-on"> | ✓ scoped | — | child select gated + scoped by a parent field |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v2.10 highlights
+
+- **Card pagination.** `card-single-alpine` + `card-multi-alpine` accept `:page-size="6"` to slice items into pages with a prev/next pager + `Page N of M` status. Keyboard arrow at the last card of a page advances to the next page and focuses its first card; arrow-up from the first card goes back. Works with any number of items.
+- **Depends-on.** `searchable-alpine`, `multi-alpine`, `tags-alpine` accept `:depends-on="country"` to gate the picker on another form field. Until the parent is set, the trigger renders disabled with a `dependsMessage` placeholder ("Pick a country first" by default). Once the parent has a value, items get scoped client-side via an optional `parent` key on each item, and any `:search-url` gets `&parent=…` appended so the server can filter too. Changing the parent auto-resets the child's selection.
+
+```blade
+<x-select::searchable-alpine name="country" :items="$countries" label="Country" />
+<x-select::searchable-alpine
+    name="city" :items="$cities" label="City"
+    depends-on="country"
+    depends-message="Pick a country first" />
+{{-- Each city has parent => 'uk', 'fr', etc. --}}
+```
 
 ### v2.9 highlights (final R.A.P pass)
 

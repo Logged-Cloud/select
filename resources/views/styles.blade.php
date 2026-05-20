@@ -88,6 +88,48 @@
     outline-offset: 1px;
 }
 
+/* Card pager · prev/next buttons + status indicator. Sits outside the
+   role=radiogroup so SR users don't hear it as a fake card. */
+.lc-cards__pager {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: .75rem 0 .25rem;
+    font-size: 0.9rem;
+}
+.lc-cards__page-btn {
+    background: var(--lc-bg);
+    color: var(--lc-ink);
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    padding: .35rem .75rem;
+    font: inherit;
+    cursor: pointer;
+}
+.lc-cards__page-btn:hover:not(:disabled) {
+    background: var(--lc-hover-bg);
+    border-color: var(--lc-accent);
+}
+.lc-cards__page-btn:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+}
+.lc-cards__page-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+.lc-cards__page-status {
+    color: var(--lc-ink-dim);
+    min-width: 7rem;
+    text-align: center;
+}
+@media (forced-colors: active) {
+    .lc-cards__page-btn { border-color: CanvasText; }
+    .lc-cards__page-btn:disabled { color: GrayText; border-color: GrayText; }
+}
+
 /* Render-cap footer · shown when filtered.length exceeds renderLimit so
    the user knows further results exist and can refine to access them. */
 .lc-select__more-row {

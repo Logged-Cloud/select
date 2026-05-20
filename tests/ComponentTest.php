@@ -327,6 +327,69 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── features (v2.10 · card pagination + depends-on) ──────────────
+
+test('card variants accept page-size and render a prev/next pager', function () {
+    foreach (['card-single-alpine', 'card-multi-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain("'pageSize' => 0")
+            ->and($tpl)->toContain('lc-cards__pager')
+            ->and($tpl)->toContain('lc-cards__page-btn')
+            ->and($tpl)->toContain('get pageCount()')
+            ->and($tpl)->toContain('get visible()')
+            ->and($tpl)->toContain('prevPage()')
+            ->and($tpl)->toContain('nextPage()')
+            ->and($tpl)->toContain('x-for="(opt, i) in visible"');
+    }
+});
+
+test('styles ship a lc-cards__pager block with forced-colors fallback', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toContain('.lc-cards__pager')
+        ->and($css)->toContain('.lc-cards__page-btn')
+        ->and($css)->toContain('.lc-cards__page-status')
+        ->and($css)->toMatch('/\.lc-cards__page-btn\s*{[^}]*border-color:\s*CanvasText/s');
+});
+
+test('searchable / multi / tags accept depends-on + depends-message props', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain("'dependsOn' => null")
+            ->and($tpl)->toContain("'dependsMessage' => null")
+            ->and($tpl)->toContain('get isLocked()')
+            ->and($tpl)->toContain('_readParent()')
+            ->and($tpl)->toContain("document.addEventListener('change', this._parentListener)");
+    }
+});
+
+test('depends-on routes items through a parent-scoping filter + augments remote URL', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain("o.parent == null || o.parent === this.parentValue")
+            ->and($tpl)->toContain("'parent=' + encodeURIComponent(this.parentValue)");
+    }
+});
+
+test('depends-on auto-clears the child value when the parent changes', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        // searchable clears `value` + `selected`; multi/tags clear `values`.
+        $clears = str_contains($tpl, "this.value = ''") || str_contains($tpl, 'this.values = []');
+        expect($clears)->toBeTrue("{$name} should reset its own selection on parent change");
+    }
+});
+
+test('item normalisation now includes an optional parent field', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)->toContain("'parent' => \$get('parent') !== null ? (string) \$get('parent') : null");
+    }
+});
+
 // ─── R.A.P final pass (v2.9) ───────────────────────────────────────
 
 test('search-helper retries once on transient fetch failure (5xx or network)', function () {
