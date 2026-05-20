@@ -129,6 +129,28 @@
 .lc-select__tag-input::placeholder { color: var(--lc-ink-dim); }
 .lc-select__menu--tags { max-height: 18rem; }
 
+/* Search-match highlight · the rank/filter helper wraps matched token
+   ranges in <mark class="lc-select__match"> so the eye lands on the
+   match. Uses color-mix off --lc-accent so it picks up the host theme. */
+.lc-select__match {
+    background: color-mix(in srgb, var(--lc-accent) 32%, transparent);
+    color: inherit;
+    border-radius: .2em;
+    padding: 0 .12em;
+    font-weight: 600;
+}
+.is-selected .lc-select__match,
+.is-active .lc-select__match {
+    background: color-mix(in srgb, var(--lc-accent) 48%, transparent);
+}
+@media (forced-colors: active) {
+    .lc-select__match {
+        background: Mark;
+        color: MarkText;
+        forced-color-adjust: none;
+    }
+}
+
 .lc-select__menu {
     position: absolute;
     top: calc(100% + 4px);

@@ -226,8 +226,8 @@
                         </svg>
                     </span>
                     <span class="lc-select__body">
-                        <span class="lc-select__title" x-text="opt.title"></span>
-                        <span class="lc-select__subtitle" x-show="opt.subtitle" x-text="opt.subtitle"></span>
+                        <span class="lc-select__title" x-html="highlight(opt.title, opt._hl?.title)"></span>
+                        <span class="lc-select__subtitle" x-show="opt.subtitle" x-html="highlight(opt.subtitle, opt._hl?.subtitle)"></span>
                     </span>
                 </li>
             </template>
@@ -243,6 +243,9 @@
 
     @once
         @include('select::styles')
+    @endonce
+    @once
+        @include('select::partials.search-helpers')
     @endonce
     @once
         <script data-lc-multi-select-alpine>
@@ -266,13 +269,11 @@
                         liveMessage: '',
 
                         get filtered() {
-                            const q = this.query.trim().toLowerCase();
-                            if (!q) return this.items;
-                            return this.items.filter((o) =>
-                                (o.title || '').toLowerCase().includes(q)
-                                || (o.subtitle || '').toLowerCase().includes(q)
-                                || (o.key || '').toLowerCase().includes(q)
-                            );
+                            return window.lcRankItems(this.items, this.query);
+                        },
+
+                        highlight(text, ranges) {
+                            return window.lcHighlightHtml(text, ranges);
                         },
 
                         get selectedItems() {

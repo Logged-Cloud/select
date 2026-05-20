@@ -150,8 +150,8 @@
                         </svg>
                     </span>
                     <span class="lc-select__item-body">
-                        <span class="lc-select__item-title" x-text="opt.title"></span>
-                        <span class="lc-select__item-subtitle" x-show="opt.subtitle" x-text="opt.subtitle"></span>
+                        <span class="lc-select__item-title" x-html="highlight(opt.title, opt._hl?.title)"></span>
+                        <span class="lc-select__item-subtitle" x-show="opt.subtitle" x-html="highlight(opt.subtitle, opt._hl?.subtitle)"></span>
                     </span>
                 </li>
             </template>
@@ -168,6 +168,9 @@
 
     @once
         @include('select::styles')
+    @endonce
+    @once
+        @include('select::partials.search-helpers')
     @endonce
     @once
         <script data-lc-tags-alpine>
@@ -191,18 +194,16 @@
                         liveMessage: '',
 
                         get filtered() {
-                            const q = this.query.trim().toLowerCase();
-                            const out = this.items.filter((o) => {
-                                if (this.values.includes(o.key)) return false;
-                                if (!q) return true;
-                                return o.title.toLowerCase().includes(q)
-                                    || (o.subtitle || '').toLowerCase().includes(q)
-                                    || o.key.toLowerCase().includes(q);
-                            });
+                            const pool = this.items.filter((o) => !this.values.includes(o.key));
+                            const out = window.lcRankItems(pool, this.query);
                             if (out.length > 0 && !out.find((o) => o.key === this.activeKey)) {
                                 this.activeKey = out[0].key;
                             }
                             return out;
+                        },
+
+                        highlight(text, ranges) {
+                            return window.lcHighlightHtml(text, ranges);
                         },
 
                         titleFor(key) {

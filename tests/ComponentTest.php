@@ -327,6 +327,50 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── shared search helper (v2.5 · token ranking + highlight) ───────
+
+test('search helper partial ships rank + highlight + escape on window', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/search-helpers.blade.php');
+    expect($tpl)
+        ->toContain('window.lcRankItems')
+        ->and($tpl)->toContain('window.lcHighlightHtml')
+        ->and($tpl)->toContain('window.lcEscapeHtml')
+        ->and($tpl)->toContain('lc-select__match')
+        ->and($tpl)->toContain('split(/\s+/)')
+        ->and($tpl)->toContain("'&': '&amp;'");
+});
+
+test('every search-bearing variant includes the helper partial', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain("@include('select::partials.search-helpers')")
+            ->and($tpl)->toContain('lcRankItems(')
+            ->and($tpl)->toContain('highlight(opt.title, opt._hl?.title)');
+    }
+});
+
+test('search-bearing variants render titles with x-html (highlight pipeline)', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        // The title binding should be x-html so the <mark> wrapper renders.
+        expect($tpl)->toContain('x-html="highlight(opt.title');
+        // And we no longer have an x-text="opt.title" binding sitting around
+        // in the option list (chips on the trigger may still use x-text).
+        $listFragment = substr($tpl, strpos($tpl, 'role="listbox"'));
+        expect($listFragment)->not->toContain('x-text="opt.title"');
+    }
+});
+
+test('styles ship a lc-select__match block with forced-colors support', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toContain('.lc-select__match')
+        ->and($css)->toContain('color-mix(in srgb, var(--lc-accent)')
+        // forced-colors fallback uses system colours (Mark / MarkText).
+        ->and($css)->toMatch('/\.lc-select__match\s*{\s*background:\s*Mark/s');
+});
+
 // ─── CSS hooks for the v2.2 variants ───────────────────────────────
 
 test('styles ship CSS hooks for every v2.2 variant', function () {
