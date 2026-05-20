@@ -136,7 +136,10 @@
             let pos = 0;
             for (const [s, e] of merged) {
                 if (s > pos) out += safe(str.slice(pos, s));
-                out += '<mark class="lc-select__match">' + safe(str.slice(s, e)) + '</mark>';
+                // <span> not <mark> · most screen readers leave <span>
+                // unannounced where some (JAWS verbose, NVDA browse mode)
+                // pre/post-announce <mark> with "marked" / "marked end".
+                out += '<span class="lc-select__match">' + safe(str.slice(s, e)) + '</span>';
                 pos = e;
             }
             if (pos < str.length) out += safe(str.slice(pos));

@@ -88,6 +88,22 @@
     outline-offset: 1px;
 }
 
+/* In-menu error row · surfaces when the remote search hook reports an
+   HTTP / network failure. Sits alongside the no-results row in the
+   listbox so the user notices it where they're already looking. */
+.lc-select__error-row {
+    list-style: none;
+    padding: .65rem .85rem;
+    margin: 0;
+    color: #ef4444;
+    background: color-mix(in srgb, #ef4444 12%, transparent);
+    font-size: .85rem;
+    font-weight: 500;
+}
+@media (forced-colors: active) {
+    .lc-select__error-row { color: Mark; background: Canvas; }
+}
+
 /* Validation error state · red ring on trigger + message below. */
 .lc-select--error .lc-select__trigger {
     border-color: #ef4444;

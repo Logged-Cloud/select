@@ -58,6 +58,8 @@
             'removed' => 'Removed',
             'limit_reached' => 'Maximum number of tags reached.',
             'loading' => 'Searching…',
+            'search_failed' => 'Search failed. Try again.',
+            'no_options' => 'No suggestions.',
         ],
     ];
 @endphp
@@ -83,8 +85,9 @@
     <div class="lc-select__trigger lc-select__trigger--tags"
          :class="{ 'is-open': open }"
          role="group"
-         @if ($label) aria-label="{{ $label }}" @endif
-         @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
+         @if ($label) aria-label="{{ $label }}"
+         @elseif ($labelledBy) aria-labelledby="{{ $labelledBy }}"
+         @else aria-label="{{ $placeholder }}" @endif
          @click="focusInput($event)">
 
         <template x-for="tag in values" :key="'chip-'+tag">
@@ -117,6 +120,8 @@
                aria-controls="{{ $listboxId }}"
                :aria-expanded="open"
                :aria-activedescendant="open && activeKey ? optionId(activeKey) : null"
+               :aria-busy="loading"
+               aria-label="{{ $label ?: $placeholder }}"
                placeholder="{{ $placeholder }}"
                @if ($required) aria-required="true" @endif
                @if ($disabled) aria-disabled="true" disabled @endif
@@ -139,6 +144,7 @@
          class="lc-select__menu lc-select__menu--tags">
         <div class="lc-select__sheet-handle" aria-hidden="true"></div>
         <ul id="{{ $listboxId }}" role="listbox" class="lc-select__list">
+            <li x-show="searchError" x-cloak class="lc-select__error-row" role="alert" x-text="searchError"></li>
             <template x-for="(opt, i) in filtered" :key="opt.key">
                 <li :id="optionId(opt.key)"
                     role="option"
@@ -195,6 +201,7 @@
                         searchUrl: config.searchUrl || null,
                         debounceMs: config.debounceMs,
                         loading: false,
+                        searchError: '',
                         _remote: null,
 
                         open: false,
@@ -203,12 +210,24 @@
                         liveMessage: '',
 
                         init() {
+                            this.$watch('filtered', () => {
+                                // Re-announce when remote results swap in or
+                                // local filter narrows down · keeps SR users
+                                // informed when the menu is open.
+                                if (!this.open) return;
+                                const n = this.filtered.length;
+                                this.liveMessage = n === 0
+                                    ? (this.a11y.no_options || 'No suggestions.')
+                                    : n + ' ' + (this.a11y.options_available || 'suggestions available');
+                            });
+
                             if (!this.searchUrl) return;
                             this._remote = window.lcMakeRemoteSearch({
                                 url: () => this.searchUrl,
                                 debounceMs: () => this.debounceMs ?? 250,
-                                onLoading: (v) => { this.loading = v; if (v) this.liveMessage = this.a11y.loading || 'Searching…'; },
+                                onLoading: (v) => { this.loading = v; if (v) { this.searchError = ''; this.liveMessage = this.a11y.loading || 'Searching…'; } },
                                 onResult: (items) => {
+                                    this.searchError = '';
                                     this.items = (items || []).map((o) => ({
                                         key: String(o.key ?? ''),
                                         title: String(o.title ?? ''),
@@ -217,6 +236,11 @@
                                     }));
                                     const first = this.filtered[0];
                                     this.activeKey = first ? first.key : null;
+                                },
+                                onError: (err) => {
+                                    this.searchError = this.a11y.search_failed || 'Search failed.';
+                                    this.liveMessage = this.searchError;
+                                    console.error('[lc-select]', err);
                                 },
                             });
                             this.$watch('query', (q) => this._remote.queue(q));
@@ -252,6 +276,8 @@
 
                         close() {
                             this.open = false;
+                            this.searchError = '';
+                            if (this._remote) this._remote.cancel();
                         },
 
                         onInput() {
@@ -283,20 +309,31 @@
                             const raw = this.query.trim();
                             if (!raw) return;
                             if (!this.allowCustom) return;
-                            this.addKey(raw);
+                            // Case-insensitive dedupe · "Feeding" / "feeding"
+                            // shouldn't both land as chips. If the typed
+                            // string already exists, swallow it; if it matches
+                            // a suggestion by title, prefer the suggestion's key.
+                            const lower = raw.toLowerCase();
+                            if (this.values.some((v) => String(v).toLowerCase() === lower)) {
+                                this.query = '';
+                                return;
+                            }
+                            const match = this.items.find((o) => o.title.toLowerCase() === lower);
+                            this.addKey(match ? match.key : raw);
                         },
 
                         addKey(key) {
-                            if (!key) return;
-                            if (this.values.includes(key)) return;
+                            const k = typeof key === 'string' ? key.trim() : key;
+                            if (!k) return;
+                            if (this.values.includes(k)) return;
                             if (this.max && this.values.length >= this.max) {
                                 this.liveMessage = this.a11y.limit_reached || 'Limit reached.';
                                 return;
                             }
-                            this.values.push(key);
+                            this.values.push(k);
                             this.query = '';
                             this.activeKey = null;
-                            this.liveMessage = (this.a11y.added || 'Added') + ' ' + this.titleFor(key);
+                            this.liveMessage = (this.a11y.added || 'Added') + ' ' + this.titleFor(k);
                             this.notifyChange();
                         },
 
