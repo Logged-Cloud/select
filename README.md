@@ -19,6 +19,11 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v2.5 highlights
+
+- **Token-aware ranking.** Multiple search tokens are AND-ed together and ranked: title-prefix > mid-title > key-prefix > key-substring > subtitle. So typing `ra` lists "Rat" before "African soft-furred rat", and `mou rat` only matches items that contain both.
+- **Match highlight.** The filter pipeline reports match ranges, the template wraps them in `<mark class="lc-select__match">`, and the CSS tints them with the host's accent via `color-mix`. Inherited everywhere the same item shape is used (`searchable-alpine`, `multi-alpine`, `tags-alpine`).
+
 ### v2.4 highlights
 
 - **Mobile bottom-sheet.** On viewports ≤ 640px the `searchable-alpine` + `multi-alpine` dropdowns render as a slide-up sheet with a tap-out backdrop instead of an absolute-positioned 22rem menu above the keyboard.
