@@ -14,6 +14,7 @@
     'labelledBy' => null,
     'required' => false,
     'disabled' => false,
+    'error' => null,
 ])
 @php
     // ID derives from label when present (camelCased) so the markup gets
@@ -24,6 +25,7 @@
     $searchId = $triggerId.'-search';
     $liveId = $triggerId.'-live';
     $fallbackId = $triggerId.'-fallback';
+    $errorId = $triggerId.'-error';
     $allowEmpty = $allowEmpty ?? config('select.behavior.allow_empty', true);
     $searchable = $searchable ?? config('select.behavior.searchable', true);
     $iconSize = $iconSize ?? config('select.behavior.icon_size', '1.75rem');
@@ -71,7 +73,7 @@
 @endphp
 <div x-data="loggedCloudSelect({{ \Illuminate\Support\Js::from($config) }})"
      x-init="$nextTick(() => { syncSelectedFromValue(); if ($refs.fallback) { $refs.fallback.name = ''; } })"
-     class="lc-select"
+     class="lc-select {{ $error ? 'lc-select--error' : '' }}"
      style="--lc-icon-size: {{ $iconSize }};"
      @click.outside="close()"
      @keydown.escape.window="if (open) { close(); }">
@@ -90,9 +92,12 @@
     <input type="hidden" name="{{ $name }}" :value="value" x-ref="hidden"
            @if ($required) required @endif>
 
-    <button type="button"
-            id="{{ $triggerId }}"
+    {{-- div, not button, because the × clear lives inside · nesting buttons
+         is invalid HTML and gets auto-closed. role=combobox + tabindex
+         preserves the keyboard semantics. --}}
+    <div id="{{ $triggerId }}"
             x-ref="trigger"
+            tabindex="{{ $disabled ? '-1' : '0' }}"
             class="lc-select__trigger"
             :class="{ 'is-open': open }"
             role="combobox"
@@ -104,7 +109,8 @@
             @if ($label) aria-label="{{ $label }}" @endif
             @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
             @if ($required) aria-required="true" @endif
-            @if ($disabled) aria-disabled="true" disabled @endif
+            @if ($disabled) aria-disabled="true" @endif
+            @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
             @click="toggle()"
             @keydown.arrow-down.prevent="open ? move(1) : openMenu(0)"
             @keydown.arrow-up.prevent="open ? move(-1) : openMenu(filtered.length - 1)"
@@ -126,15 +132,40 @@
             <span x-text="selected ? selected.title : @js($placeholder)"
                   :class="selected ? 'lc-select__placeholder--filled' : 'lc-select__placeholder'"></span>
         </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round"
-             class="lc-select__chevron" aria-hidden="true">
-            <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-    </button>
+        <span class="lc-select__trigger-tail">
+            {{-- Clear button surfaces only when something is selected and
+                 allow-empty is honoured · sits before the chevron. Stops
+                 propagation so the trigger does not toggle the menu. --}}
+            @if ($allowEmpty)
+                <button type="button"
+                        x-show="selected"
+                        x-cloak
+                        class="lc-select__clear"
+                        aria-label="Clear selection"
+                        @click.stop="clear()">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M6 6l12 12M6 18L18 6"></path>
+                    </svg>
+                </button>
+            @endif
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 class="lc-select__chevron" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </span>
+    </div>
+
+    {{-- Mobile-only backdrop · only the @media (max-width:640px) block makes
+         this visible. Click-through to close uses the same @click.outside
+         on the wrapper since the backdrop sits outside the .lc-select element. --}}
+    <div x-show="open" x-cloak class="lc-select__backdrop" @click="close()"></div>
 
     <div x-show="open" x-cloak x-transition.opacity.duration.100ms class="lc-select__menu">
+        <div class="lc-select__sheet-handle" aria-hidden="true"></div>
         @if ($searchable)
             <input type="text"
                    id="{{ $searchId }}"
@@ -199,6 +230,10 @@
             <li x-show="filtered.length === 0" class="lc-select__no-results" role="presentation">{{ $noResultsLabel }}</li>
         </ul>
     </div>
+
+    @if ($error)
+        <p id="{{ $errorId }}" class="lc-select__error" role="alert">{{ $error }}</p>
+    @endif
 
     {{-- Polite live region: announces filtered-results count + selection
          changes to assistive tech without grabbing focus. --}}

@@ -14,6 +14,7 @@
     'disabled' => false,
     'max' => null,
     'chipsLimit' => 3,
+    'error' => null,
 ])
 @php
     $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -21,6 +22,7 @@
     $searchId = $triggerId.'-search';
     $liveId = $triggerId.'-live';
     $fallbackId = $triggerId.'-fallback';
+    $errorId = $triggerId.'-error';
     $searchable = $searchable ?? config('select.behavior.searchable', true);
     $iconSize = $iconSize ?? config('select.behavior.icon_size', '1.75rem');
     $placeholder = $placeholder ?? config('select.copy.placeholder', 'Select options');
@@ -65,7 +67,7 @@
 @endphp
 <div x-data="loggedCloudMultiSelect({{ \Illuminate\Support\Js::from($config) }})"
      x-init="$nextTick(() => { syncFromSelected(); if ($refs.fallback) { $refs.fallback.name = ''; } })"
-     class="lc-select lc-select--multi"
+     class="lc-select lc-select--multi {{ $error ? 'lc-select--error' : '' }}"
      style="--lc-icon-size: {{ $iconSize }};"
      @click.outside="close()"
      @keydown.escape.window="if (open) { close(); }">
@@ -81,9 +83,13 @@
         <input type="hidden" :name="@js($name).concat('[]')" :value="key" x-ref="hidden">
     </template>
 
-    <button type="button"
-            id="{{ $triggerId }}"
+    {{-- The trigger is a div, not a button, because chip-remove + clear-all
+         live inside it · nesting a <button> inside a <button> is invalid
+         HTML and the browser auto-closes the outer button. role=combobox +
+         tabindex preserves the keyboard semantics. --}}
+    <div id="{{ $triggerId }}"
             x-ref="trigger"
+            tabindex="{{ $disabled ? '-1' : '0' }}"
             class="lc-select__trigger lc-select__trigger--multi"
             :class="{ 'is-open': open }"
             role="combobox"
@@ -96,7 +102,8 @@
             @if ($label) aria-label="{{ $label }}" @endif
             @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
             @if ($required) aria-required="true" @endif
-            @if ($disabled) aria-disabled="true" disabled @endif
+            @if ($disabled) aria-disabled="true" @endif
+            @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
             @click="toggle()"
             @keydown.arrow-down.prevent="open ? move(1) : openMenu(0)"
             @keydown.arrow-up.prevent="open ? move(-1) : openMenu(filtered.length - 1)"
@@ -141,15 +148,34 @@
                 </span>
             </template>
         </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round"
-             class="lc-select__chevron" aria-hidden="true">
-            <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-    </button>
+        <span class="lc-select__trigger-tail">
+            {{-- Clear-all button surfaces only when at least one chip is
+                 selected · empties the values array via clearAll(). --}}
+            <button type="button"
+                    x-show="values.length > 0"
+                    x-cloak
+                    class="lc-select__clear"
+                    aria-label="Clear all selections"
+                    @click.stop="clearAll()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                     stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 6l12 12M6 18L18 6"></path>
+                </svg>
+            </button>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 class="lc-select__chevron" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </span>
+    </div>
+
+    <div x-show="open" x-cloak class="lc-select__backdrop" @click="close()"></div>
 
     <div x-show="open" x-cloak x-transition.opacity.duration.100ms class="lc-select__menu">
+        <div class="lc-select__sheet-handle" aria-hidden="true"></div>
         @if ($searchable)
             <input type="text"
                    id="{{ $searchId }}"
@@ -208,6 +234,10 @@
             <li x-show="filtered.length === 0" class="lc-select__no-results" role="presentation">{{ $noResultsLabel }}</li>
         </ul>
     </div>
+
+    @if ($error)
+        <p id="{{ $errorId }}" class="lc-select__error" role="alert">{{ $error }}</p>
+    @endif
 
     <div id="{{ $liveId }}" class="lc-select__live" aria-live="polite" aria-atomic="true" x-text="liveMessage"></div>
 
@@ -350,6 +380,14 @@
                             const opt = this.items.find((o) => o.key === key);
                             this.values.splice(idx, 1);
                             this.liveMessage = (this.a11y.removed || 'Removed') + ' ' + (opt?.title || '');
+                            this.notifyChange();
+                        },
+
+                        clearAll() {
+                            const n = this.values.length;
+                            if (n === 0) return;
+                            this.values = [];
+                            this.liveMessage = (this.a11y.removed || 'Removed') + ' ' + n + ' ' + (this.a11y.selected_summary || 'selected');
                             this.notifyChange();
                         },
 

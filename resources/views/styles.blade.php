@@ -43,7 +43,10 @@
     align-items: center;
     justify-content: space-between;
     gap: .5rem;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
+.lc-select__trigger:focus { outline: none; }
 .lc-select__trigger.is-open,
 .lc-select__trigger:focus-visible {
     /* A 2px outline ring (not a 0-outline) so keyboard users get a clear
@@ -60,6 +63,72 @@
 .lc-select__placeholder { color: var(--lc-ink-dim); }
 .lc-select__placeholder--filled { color: var(--lc-ink); }
 .lc-select__chevron { opacity: .6; }
+.lc-select__trigger-tail {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    flex: none;
+}
+.lc-select__clear {
+    background: transparent;
+    border: 0;
+    padding: .25rem;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--lc-ink-dim);
+    display: inline-grid;
+    place-items: center;
+}
+.lc-select__clear:hover {
+    background: color-mix(in srgb, var(--lc-ink) 12%, transparent);
+    color: var(--lc-ink);
+}
+.lc-select__clear:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 1px;
+}
+
+/* Validation error state · red ring on trigger + message below. */
+.lc-select--error .lc-select__trigger {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 1px #ef4444;
+}
+.lc-select__error {
+    margin: .35rem 0 0;
+    padding: 0;
+    color: #ef4444;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+@media (forced-colors: active) {
+    .lc-select--error .lc-select__trigger { border-color: Mark; box-shadow: 0 0 0 1px Mark; }
+}
+
+/* tags-alpine · combobox where the trigger holds chips + an inline input. */
+.lc-select__trigger--tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem .4rem;
+    cursor: text;
+}
+.lc-select__trigger--tags.is-open {
+    border-color: var(--lc-accent);
+    box-shadow: 0 0 0 1px var(--lc-accent);
+}
+.lc-select__tag-input {
+    flex: 1 1 6rem;
+    min-width: 6rem;
+    background: transparent;
+    border: 0;
+    color: var(--lc-ink);
+    font: inherit;
+    padding: .15rem 0;
+    outline: none;
+}
+.lc-select__tag-input::placeholder { color: var(--lc-ink-dim); }
+.lc-select__menu--tags { max-height: 18rem; }
+
 .lc-select__menu {
     position: absolute;
     top: calc(100% + 4px);
@@ -73,6 +142,53 @@
     display: flex;
     flex-direction: column;
     max-height: 22rem;
+}
+
+/* Mobile · convert the dropdown into a bottom sheet on phones. The
+   absolute-positioned 22rem menu collides with the iOS keyboard and
+   loses context off-screen; a fixed slide-up sheet feels native. */
+.lc-select__backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 40;
+}
+.lc-select__sheet-handle {
+    display: none;
+    width: 2.5rem;
+    height: .25rem;
+    background: var(--lc-border);
+    border-radius: 999px;
+    margin: .65rem auto .15rem;
+    flex: none;
+}
+@media (max-width: 640px) {
+    .lc-select__menu {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        max-height: 75vh;
+        border-radius: calc(var(--lc-radius) + .4rem) calc(var(--lc-radius) + .4rem) 0 0;
+        border-bottom: 0;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        box-shadow: 0 -8px 24px rgba(0,0,0,.55);
+    }
+    .lc-select__sheet-handle { display: block; }
+    .lc-select__backdrop { display: block; }
+    /* Search input feels nicer with a bit more breathing room when it
+       sits at the top of a sheet. */
+    .lc-select__search {
+        padding: .85rem 1rem;
+        font-size: 1rem;
+    }
+    .lc-select__item {
+        padding: .75rem .85rem;
+        font-size: 1rem;
+    }
 }
 .lc-select__search {
     width: 100%;
