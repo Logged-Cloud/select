@@ -1,0 +1,40 @@
+{
+    "name": "logged-cloud/select",
+    "description": "A searchable Alpine-driven select dropdown with inline-SVG icons. Drop-in Blade component for Laravel + Livewire + Alpine.",
+    "keywords": ["laravel", "livewire", "alpine", "select", "dropdown", "combobox", "form"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LoggedCloud\\Select\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LoggedCloud\\Select\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LoggedCloud\\Select\\SelectServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
