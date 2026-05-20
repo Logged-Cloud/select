@@ -216,15 +216,13 @@
                         liveMessage: '',
 
                         init() {
+                            this._announce = window.lcMakeAnnouncer((m) => { this.liveMessage = m; });
                             this.$watch('filtered', () => {
-                                // Re-announce when remote results swap in or
-                                // local filter narrows down · keeps SR users
-                                // informed when the menu is open.
                                 if (!this.open) return;
                                 const n = this.filtered.length;
-                                this.liveMessage = n === 0
+                                this._announce(n === 0
                                     ? (this.a11y.no_options || 'No suggestions.')
-                                    : n + ' ' + (this.a11y.options_available || 'suggestions available');
+                                    : n + ' ' + (this.a11y.options_available || 'suggestions available'));
                             });
 
                             if (!this.searchUrl) return;
@@ -284,8 +282,7 @@
                         },
 
                         optionId(key) {
-                            const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
-                            return this.triggerId + '__opt-' + safe;
+                            return this.triggerId + '__opt-' + window.lcSafeId(key);
                         },
 
                         focusInput(e) {
@@ -297,10 +294,20 @@
                             this.open = false;
                             this.searchError = '';
                             if (this._remote) this._remote.cancel();
+                            if (this._lockedScroll) {
+                                window.lcUnlockBodyScroll();
+                                this._lockedScroll = false;
+                            }
                         },
 
                         onInput() {
-                            this.open = true;
+                            if (!this.open) {
+                                this.open = true;
+                                if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+                                    window.lcLockBodyScroll();
+                                    this._lockedScroll = true;
+                                }
+                            }
                         },
 
                         onBackspace() {

@@ -312,9 +312,7 @@
                         },
 
                         optionId(key) {
-                            // Keys may carry chars unsafe in id attributes; encode + namespace.
-                            const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
-                            return this.listboxId + '__opt-' + safe;
+                            return this.listboxId + '__opt-' + window.lcSafeId(key);
                         },
 
                         currentIndex() {
@@ -337,6 +335,12 @@
                             this.open = true;
                             this.cursor = Math.max(this.allowEmpty ? -1 : 0, Math.min(cursor, this.visible.length - 1));
                             this.announceResults();
+                            // Lock the body scroll on phones · the bottom-
+                            // sheet CSS kicks in at the same breakpoint.
+                            if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+                                window.lcLockBodyScroll();
+                                this._lockedScroll = true;
+                            }
                             if (this.searchable) {
                                 this.$nextTick(() => this.$refs.search?.focus());
                             }
@@ -349,10 +353,11 @@
                             this.query = '';
                             this.cursor = 0;
                             this.searchError = '';
-                            // Cancel any in-flight remote fetch · stale
-                            // responses landing after close would replace
-                            // items unexpectedly.
                             if (this._remote) this._remote.cancel();
+                            if (this._lockedScroll) {
+                                window.lcUnlockBodyScroll();
+                                this._lockedScroll = false;
+                            }
                             this.focusTrigger();
                         },
 
@@ -395,9 +400,14 @@
 
                         announceResults() {
                             const n = this.filtered.length;
-                            this.liveMessage = n === 0
+                            const msg = n === 0
                                 ? (this.a11y.no_options || 'No options.')
                                 : n + ' ' + (this.a11y.options_available || 'options available');
+                            // Coalesce keystroke-rate updates · screen readers
+                            // chatter otherwise. Direct sets (selection, error)
+                            // still write straight to liveMessage and win.
+                            this._announce ??= window.lcMakeAnnouncer((m) => { this.liveMessage = m; });
+                            this._announce(msg);
                         },
 
                         announceSelection(opt) {

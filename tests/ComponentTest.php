@@ -327,6 +327,69 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── R.A.P final pass (v2.9) ───────────────────────────────────────
+
+test('search-helper retries once on transient fetch failure (5xx or network)', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/search-helpers.blade.php');
+    expect($tpl)
+        ->toContain('const attempt = (n) =>')
+        ->and($tpl)->toContain('r.status >= 500 && n < 1')
+        ->and($tpl)->toContain('attempt(n + 1)');
+});
+
+test('search-helper memoises lowercase normalisation per items array', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/search-helpers.blade.php');
+    expect($tpl)
+        ->toContain('itemsCache = new WeakMap()')
+        ->and($tpl)->toContain('normalisedItems')
+        ->and($tpl)->toContain('itemsCache.set(items, norm)');
+});
+
+test('search-helper ships a throttled announcer + body-scroll lock + collision-proof safe id', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/search-helpers.blade.php');
+    expect($tpl)
+        ->toContain('window.lcMakeAnnouncer')
+        ->and($tpl)->toContain('window.lcLockBodyScroll')
+        ->and($tpl)->toContain('window.lcUnlockBodyScroll')
+        ->and($tpl)->toContain('bodyLockCount')
+        ->and($tpl)->toContain('window.lcSafeId')
+        ->and($tpl)->toContain(".replace(/_/g, '__')");
+});
+
+test('every search-bearing variant locks body scroll on mobile open + unlocks on close', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain("matchMedia('(max-width: 640px)')")
+            ->and($tpl)->toContain('window.lcLockBodyScroll()')
+            ->and($tpl)->toContain('window.lcUnlockBodyScroll()')
+            ->and($tpl)->toContain('this._lockedScroll');
+    }
+});
+
+test('every search-bearing variant routes optionId through window.lcSafeId', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('window.lcSafeId(key)')
+            // The hand-rolled escape from earlier versions should be gone.
+            ->and($tpl)->not->toContain("replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16))");
+    }
+});
+
+test('dropdown variants throttle their announcement via lcMakeAnnouncer', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)->toContain('window.lcMakeAnnouncer');
+    }
+});
+
+test('forced-colors block now covers .lc-select__more-row', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toMatch('/\.lc-select__more-row\s*{[^}]*color:\s*CanvasText/s');
+});
+
 // ─── performance (v2.8 · memo + render cap) ────────────────────────
 
 test('search-helper ships a memoized filter factory', function () {

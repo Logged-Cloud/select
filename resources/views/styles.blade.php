@@ -100,6 +100,9 @@
     font-style: italic;
     text-align: center;
 }
+@media (forced-colors: active) {
+    .lc-select__more-row { color: CanvasText; background: Canvas; border-top: 1px solid CanvasText; }
+}
 
 /* In-menu error row · surfaces when the remote search hook reports an
    HTTP / network failure. Sits alongside the no-results row in the

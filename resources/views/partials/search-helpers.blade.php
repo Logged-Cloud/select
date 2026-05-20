@@ -8,6 +8,56 @@
         if (window.__lcSearchHelpers) return;
         window.__lcSearchHelpers = true;
 
+        // Live-region throttle · screen readers chatter when liveMessage
+        // updates on every keystroke. lcMakeAnnouncer returns a setter that
+        // coalesces updates within `delay` ms so a fast typist gets one
+        // settled announcement rather than 6.
+        window.lcMakeAnnouncer = function (setter, delay = 280) {
+            let timer = null;
+            let pending = null;
+            return function (msg) {
+                pending = msg;
+                if (timer) return;
+                timer = setTimeout(() => {
+                    setter(pending);
+                    timer = null;
+                }, delay);
+            };
+        };
+
+        // Body-scroll lock for the mobile bottom-sheet · prevents the page
+        // behind the backdrop from scrolling under the user's thumb on iOS.
+        // Reference-counted because multiple open sheets shouldn't unlock
+        // each other when the first one closes.
+        let bodyLockCount = 0;
+        let bodyLockPrev = null;
+        window.lcLockBodyScroll = function () {
+            if (bodyLockCount === 0) {
+                bodyLockPrev = document.documentElement.style.overflow;
+                document.documentElement.style.overflow = 'hidden';
+            }
+            bodyLockCount++;
+        };
+        window.lcUnlockBodyScroll = function () {
+            if (bodyLockCount === 0) return;
+            bodyLockCount--;
+            if (bodyLockCount === 0) {
+                document.documentElement.style.overflow = bodyLockPrev || '';
+                bodyLockPrev = null;
+            }
+        };
+
+        // Collision-proof id-safe encoding · the original
+        // `replace(non-alnum, '_NN')` collided when an input string already
+        // contained the literal escape sequence (e.g. 'héllo' and 'h_e9llo'
+        // both encoded to the same id). Doubling input underscores first
+        // makes the escape space disjoint from the input space.
+        window.lcSafeId = function (key) {
+            return String(key)
+                .replace(/_/g, '__')
+                .replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
+        };
+
         // Memoize a filter run · returns a stable closure that short-circuits
         // when called with the same (items, query) pair as last time. The
         // ranking + highlight pipeline is O(items × tokens) with allocation
@@ -31,6 +81,26 @@
             };
         };
 
+        // Per-array normalisation cache · the rank loop reads the lowercase
+        // forms of title / subtitle / key for every item every keystroke,
+        // which is wasted work given items rarely change between queries.
+        // WeakMap keyed on the items array reference so a fresh items array
+        // (after remote-search swap) gets a fresh cache and the old one is
+        // GC-able once Alpine drops its reference.
+        const itemsCache = new WeakMap();
+        function normalisedItems(items) {
+            const hit = itemsCache.get(items);
+            if (hit) return hit;
+            const norm = items.map((o) => ({
+                item: o,
+                titleLc: (o.title || '').toLowerCase(),
+                subtitleLc: (o.subtitle || '').toLowerCase(),
+                keyLc: (o.key || '').toLowerCase(),
+            }));
+            itemsCache.set(items, norm);
+            return norm;
+        }
+
         // Score an items array against a multi-token query. Tokens are AND-ed
         // (every token must hit somewhere); ties broken by where the match
         // lands · prefix-on-title beats mid-word beats subtitle. Returns
@@ -42,10 +112,12 @@
             }
             const tokens = raw.toLowerCase().split(/\s+/).filter(Boolean);
             const out = [];
-            for (const item of items) {
-                const titleLc = (item.title || '').toLowerCase();
-                const subtitleLc = (item.subtitle || '').toLowerCase();
-                const keyLc = (item.key || '').toLowerCase();
+            const norm = normalisedItems(items);
+            for (const entry of norm) {
+                const item = entry.item;
+                const titleLc = entry.titleLc;
+                const subtitleLc = entry.subtitleLc;
+                const keyLc = entry.keyLc;
                 let score = 0;
                 const titleRanges = [];
                 const subtitleRanges = [];
@@ -113,11 +185,29 @@
                     config.onLoading && config.onLoading(true);
                     const sep = base.indexOf('?') >= 0 ? '&' : '?';
                     const url = base + sep + 'q=' + encodeURIComponent(query || '');
-                    fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } })
+                    // Retry once on transient failures (network drop or 5xx)
+                    // before reporting · 1xx/2xx/3xx/4xx pass through. Aborts
+                    // are surfaced as-is so a fresh keystroke can replace the
+                    // request without retrying the cancelled one.
+                    const attempt = (n) => fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } })
                         .then((r) => {
-                            if (!r.ok) throw new Error('HTTP ' + r.status);
-                            return r.json();
+                            if (r.ok) return r.json();
+                            if (r.status >= 500 && n < 1) {
+                                return new Promise((res) => setTimeout(res, 200))
+                                    .then(() => attempt(n + 1));
+                            }
+                            throw new Error('HTTP ' + r.status);
                         })
+                        .catch((e) => {
+                            if (e && e.name === 'AbortError') throw e;
+                            if (n < 1 && (!e.message || !e.message.startsWith('HTTP'))) {
+                                // Network-layer error · one retry then give up.
+                                return new Promise((res) => setTimeout(res, 200))
+                                    .then(() => attempt(n + 1));
+                            }
+                            throw e;
+                        });
+                    attempt(0)
                         .then((items) => {
                             config.onResult && config.onResult(Array.isArray(items) ? items : (items.items || []));
                             config.onLoading && config.onLoading(false);
