@@ -132,6 +132,97 @@
 .lc-select__icon svg { width: 70%; height: 70%; display: block; }
 .lc-select__icon--empty { opacity: .5; }
 
+/* ── multi-alpine specifics ─────────────────────────────────────────── */
+
+.lc-select__trigger--multi { min-height: 2.5rem; align-items: flex-start; padding: .35rem .55rem; }
+.lc-select__chips { display: flex; flex-wrap: wrap; gap: .35rem; min-width: 0; }
+.lc-select__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .15rem .25rem .15rem .4rem;
+    background: var(--lc-hover-bg);
+    border-radius: calc(var(--lc-radius) - .15rem);
+    font-size: 0.85rem;
+}
+.lc-select__chip-icon {
+    display: inline-grid;
+    place-items: center;
+    color: var(--lc-accent);
+}
+.lc-select__chip-remove {
+    background: transparent;
+    border: 0;
+    padding: .1rem;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--lc-ink-dim);
+    display: inline-flex;
+}
+.lc-select__chip-remove:hover { color: var(--lc-ink); background: color-mix(in srgb, var(--lc-ink) 12%, transparent); }
+.lc-select__chip-remove:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: 1px; }
+.lc-select__chosen-summary { display: inline-flex; gap: .3rem; align-items: baseline; font-weight: 500; }
+
+.lc-select__item--multi { padding-left: .4rem; }
+.lc-select__check {
+    width: 1.1rem; height: 1.1rem;
+    border-radius: .25rem;
+    border: 1.5px solid var(--lc-border);
+    display: inline-grid;
+    place-items: center;
+    color: var(--lc-accent);
+    flex: none;
+}
+.lc-select__item--multi.is-selected .lc-select__check {
+    border-color: var(--lc-accent);
+    background: color-mix(in srgb, var(--lc-accent) 18%, transparent);
+}
+.lc-select__item--multi[aria-selected="true"] .lc-select__title::after { content: ''; }
+
+/* ── radio-grid-alpine specifics ────────────────────────────────────── */
+
+.lc-radio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--lc-cell-min, 6.5rem), 1fr));
+    gap: .5rem;
+}
+.lc-radio-grid__item {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    padding: .65rem .5rem;
+    color: var(--lc-ink);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    font: inherit;
+    transition: border-color .12s, background .12s;
+}
+.lc-radio-grid__item:hover { border-color: var(--lc-ink-dim); }
+.lc-radio-grid__item:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+    border-color: var(--lc-accent);
+}
+.lc-radio-grid__item.is-selected {
+    border-color: var(--lc-accent);
+    background: color-mix(in srgb, var(--lc-accent) 12%, var(--lc-bg));
+    color: var(--lc-accent);
+}
+.lc-radio-grid__item[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+.lc-radio-grid__icon {
+    width: var(--lc-icon-size, 1.5rem);
+    height: var(--lc-icon-size, 1.5rem);
+    display: grid;
+    place-items: center;
+    margin-bottom: .35rem;
+}
+.lc-radio-grid__icon svg { width: 100%; height: 100%; }
+.lc-radio-grid__title { font-size: 0.85rem; font-weight: 500; }
+.lc-radio-grid__subtitle { font-size: 0.72rem; color: var(--lc-ink-dim); margin-top: .15rem; }
+
 /* Visually-hidden region for aria-live announcements. Same rules as
    Tailwind's sr-only · invisible to sighted users, picked up by screen
    readers. */
