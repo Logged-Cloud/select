@@ -246,6 +246,87 @@ test('card-multi-alpine uses toggle-button semantics + name[] posting', function
         ->and($tpl)->toContain('limit_reached');
 });
 
+// ─── tags-alpine ────────────────────────────────────────────────────
+
+test('tags-alpine is a combobox with chips + inline input + name[] posting', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tags-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="combobox"')
+        ->and($tpl)->toContain('aria-haspopup="listbox"')
+        ->and($tpl)->toContain("'[]'")
+        ->and($tpl)->toContain('lc-select__chip')
+        ->and($tpl)->toContain('lc-select__tag-input')
+        ->and($tpl)->toContain('allowCustom')
+        ->and($tpl)->toContain('@keydown.backspace')
+        ->and($tpl)->toContain('@keydown.enter');
+});
+
+test('tags-alpine error prop wires aria-invalid + describedby', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tags-alpine.blade.php');
+    expect($tpl)
+        ->toContain('aria-invalid="true"')
+        ->and($tpl)->toContain('aria-describedby')
+        ->and($tpl)->toContain('lc-select__error')
+        ->and($tpl)->toContain('role="alert"');
+});
+
+// ─── error prop on searchable + multi ──────────────────────────────
+
+test('searchable-alpine surfaces the new error prop', function () use ($searchable) {
+    $tpl = file_get_contents($searchable);
+    expect($tpl)
+        ->toContain("'error' => null")
+        ->and($tpl)->toContain('lc-select--error')
+        ->and($tpl)->toContain('aria-invalid="true"')
+        ->and($tpl)->toContain('role="alert"');
+});
+
+test('multi-alpine surfaces the new error prop', function () use ($multi) {
+    $tpl = file_get_contents($multi);
+    expect($tpl)
+        ->toContain("'error' => null")
+        ->and($tpl)->toContain('lc-select--error')
+        ->and($tpl)->toContain('aria-invalid="true"');
+});
+
+// ─── clear button on searchable + multi triggers ───────────────────
+
+test('searchable-alpine renders a clear button when something is selected', function () use ($searchable) {
+    $tpl = file_get_contents($searchable);
+    expect($tpl)
+        ->toContain('lc-select__clear')
+        ->and($tpl)->toContain('Clear selection')
+        ->and($tpl)->toContain('@click.stop="clear()"');
+});
+
+test('multi-alpine renders a clear-all button + clearAll() action', function () use ($multi) {
+    $tpl = file_get_contents($multi);
+    expect($tpl)
+        ->toContain('lc-select__clear')
+        ->and($tpl)->toContain('Clear all selections')
+        ->and($tpl)->toContain('clearAll()');
+});
+
+// ─── mobile bottom-sheet ───────────────────────────────────────────
+
+test('searchable + multi templates emit a bottom-sheet backdrop + handle', function () use ($searchable, $multi) {
+    foreach ([$searchable, $multi] as $path) {
+        $tpl = file_get_contents($path);
+        expect($tpl)
+            ->toContain('lc-select__backdrop')
+            ->and($tpl)->toContain('lc-select__sheet-handle');
+    }
+});
+
+test('styles ship a 640px bottom-sheet block', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toContain('@media (max-width: 640px)')
+        ->and($css)->toContain('.lc-select__backdrop')
+        ->and($css)->toContain('.lc-select__sheet-handle')
+        ->and($css)->toContain('env(safe-area-inset-bottom');
+});
+
 // ─── CSS hooks for the v2.2 variants ───────────────────────────────
 
 test('styles ship CSS hooks for every v2.2 variant', function () {
@@ -281,11 +362,15 @@ test('styles file ships CSS hooks for every variant', function () use ($styles) 
         '.lc-select__menu',
         '.lc-select__item',
         '.lc-select__trigger--multi',
+        '.lc-select__trigger--tags',
+        '.lc-select__tag-input',
         '.lc-select__chip',
         '.lc-select__chip-remove',
         '.lc-select__check',
         '.lc-radio-grid',
         '.lc-radio-grid__item',
+        '.lc-select__clear',
+        '.lc-select__error',
     ] as $hook) {
         expect($css)->toContain($hook);
     }

@@ -15,8 +15,16 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | [`inline-buttons-alpine`](#x-selectinline-buttons-alpine) | <img src="docs/images/inline-buttons-alpine.png" width="280" alt="inline-buttons-alpine"> | — | — | segmented pill row · radiogroup |
 | [`card-single-alpine`](#x-selectcard-single-alpine) | <img src="docs/images/card-single-alpine.png" width="280" alt="card-single-alpine"> | — | — | big visual cards · radiogroup |
 | [`card-multi-alpine`](#x-selectcard-multi-alpine) | <img src="docs/images/card-multi-alpine.png" width="280" alt="card-multi-alpine"> | — | ✓ | big visual cards · toggle-button group |
+| [`tags-alpine`](#x-selecttags-alpine) | <img src="docs/images/tags-alpine.png" width="280" alt="tags-alpine"> | ✓ client | ✓ chips | free-form tag entry · combobox + listbox |
 
-Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, `tags-alpine` for free-form entry, …) slot in alongside without forcing a new `composer require`.
+Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v2.4 highlights
+
+- **Mobile bottom-sheet.** On viewports ≤ 640px the `searchable-alpine` + `multi-alpine` dropdowns render as a slide-up sheet with a tap-out backdrop instead of an absolute-positioned 22rem menu above the keyboard.
+- **× clear button.** The `searchable-alpine` trigger gains an inline × when something is selected; `multi-alpine` gains a clear-all × beside the chevron.
+- **`error="..."` prop.** Pass an error string on any dropdown variant to get a red ring, `aria-invalid="true"`, an `aria-describedby`-linked message with `role="alert"`, and `forced-colors` support.
+- **`tags-alpine` variant.** Free-form tag entry with chip removal, Backspace-to-delete-last, suggestion filtering, and optional `allowCustom="false"` to lock typing to the suggestion set.
 
 All variants share the same `{key, title, subtitle, svg}` item shape, the same CSS custom-property theming, the same reduced-motion / forced-colours handling, and a built-in `<noscript>` fallback that swaps in a native `<select>` when JavaScript is disabled.
 
@@ -249,6 +257,60 @@ Multi-select version of the cards. Toggle-button semantics, checkmark badge on e
     :max="3"
 />
 ```
+
+---
+
+## `<x-select::tags-alpine>`
+
+![tags-alpine](docs/images/tags-alpine.png)
+
+Free-form tag editor. The trigger holds chips + an inline input · type to filter suggestions, **Enter** commits the highlighted suggestion or (with `allow-custom`) the typed string, **Backspace** on an empty input removes the last chip, ↑/↓ navigate suggestions. Posts as `name[]`.
+
+```blade
+<x-select::tags-alpine
+    name="tags"
+    :items="$suggestions"
+    :selected="$existing"
+    label="Tags"
+    placeholder="Add a tag..."
+    :max="10"
+/>
+
+{{-- Lock entries to the suggestion list (no custom strings): --}}
+<x-select::tags-alpine
+    name="role"
+    :items="$roles"
+    :allow-custom="false"
+    label="Role"
+/>
+```
+
+| Prop | Default | Notes |
+| --- | --- | --- |
+| `allow-custom` | `true` | Set `false` to disallow strings that aren't in `items` (Enter on a non-match becomes a no-op). |
+| `max` | `null` | Cap the number of chips. Beyond the cap the screen-reader live region announces "Maximum number of tags reached." |
+| `error` | `null` | Red ring + `role="alert"` message + `aria-invalid`. |
+
+---
+
+## Validation · `error="..."`
+
+Every dropdown variant (`searchable-alpine`, `multi-alpine`, `tags-alpine`) takes an optional `error` prop. When non-empty the trigger picks up a `.lc-select--error` class (red ring), the message renders below it as a `role="alert"`, and the trigger's `aria-invalid` + `aria-describedby` point at the message. Plays nice with `@error('field')` in Blade.
+
+```blade
+<x-select::searchable-alpine
+    name="prey"
+    :items="$prey"
+    label="Prey"
+    :error="$errors->first('prey')"
+/>
+```
+
+---
+
+## Mobile bottom-sheet
+
+On viewports ≤ 640px the dropdown variants (`searchable-alpine`, `multi-alpine`, `tags-alpine`) flip from an absolute-positioned menu into a fixed slide-up sheet with a dismiss-on-tap backdrop, a drag-handle visual, and `env(safe-area-inset-bottom)` padding so iOS home-bar devices clear the indicator. Nothing to wire up · purely a CSS `@media` block.
 
 ---
 

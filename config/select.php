@@ -44,6 +44,7 @@ return [
         'no_results_label' => 'No options match that.',
         'no_js_warning'    => 'JavaScript is needed for the rich picker. Using the basic select instead.',
         'no_js_indicator'  => 'JS off',
+        'tags_placeholder' => 'Add a tag...',
     ],
 
     /*
