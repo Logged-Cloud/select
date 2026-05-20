@@ -88,6 +88,65 @@
     outline-offset: 1px;
 }
 
+/* Tree picker · hierarchical list with expandable branches. The container
+   is the familiar dropdown menu; rows render server-side and Alpine drives
+   the visibility (collapsed-ancestor hides) + roving-tabindex pattern. */
+.lc-tree {
+    list-style: none;
+    padding: .25rem 0;
+    margin: 0;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+.lc-tree__row {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .55rem;
+    cursor: pointer;
+    color: var(--lc-ink);
+    transition: background 120ms;
+}
+.lc-tree__row:hover,
+.lc-tree__row.is-active {
+    background: var(--lc-hover-bg);
+}
+.lc-tree__row.is-selected {
+    background: color-mix(in srgb, var(--lc-accent) 22%, transparent);
+    color: var(--lc-ink);
+}
+.lc-tree__row.is-selected .lc-tree__title { font-weight: 600; }
+.lc-tree__row:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: -2px; }
+.lc-tree__indent { flex: none; }
+.lc-tree__twisty {
+    background: transparent;
+    border: 0;
+    padding: .15rem;
+    border-radius: 4px;
+    color: var(--lc-ink-dim);
+    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+}
+.lc-tree__twisty:hover { background: color-mix(in srgb, var(--lc-ink) 10%, transparent); }
+.lc-tree__twisty-open { transform: rotate(90deg); transition: transform 120ms; }
+.lc-tree__leaf-dot {
+    width: .35rem; height: .35rem;
+    border-radius: 50%;
+    background: var(--lc-ink-dim);
+    margin: 0 .3rem;
+    flex: none;
+    opacity: .5;
+}
+.lc-tree__icon { display: inline-grid; place-items: center; color: var(--lc-accent); flex: none; }
+.lc-tree__body { display: flex; flex-direction: column; min-width: 0; }
+.lc-tree__title { font-size: .9rem; }
+.lc-tree__subtitle { font-size: .75rem; color: var(--lc-ink-dim); }
+@media (forced-colors: active) {
+    .lc-tree__row.is-selected { background: Highlight; color: HighlightText; }
+    .lc-tree__twisty { border: 1px solid CanvasText; }
+}
+
 /* SVG map · the menu content for map-svg-alpine. The container is the
    familiar dropdown menu but the listbox is an <svg> instead of a <ul>. */
 .lc-select__menu--map {
