@@ -20,6 +20,15 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v2.7 highlights
+
+- **Inline error row** when a remote fetch fails (HTTP / network) · renders in the menu as `role="alert"` and the polite live region announces "Search failed. Try again." so the failure is impossible to miss whether you're sighted or using a screen reader.
+- **Cancel-on-close** for any in-flight remote search · `_remote.cancel()` runs from each variant's `close()` so a stale response can't replace items after the user has moved on.
+- **Trim + case-insensitive dedupe** for `tags-alpine` custom values · " Feeding " and "feeding" don't both land. Existing keys win over new strings when the title matches a suggestion case-insensitively.
+- **Accessible-name fallback** · every trigger now resolves to `label` → `labelledBy` → `placeholder` so a developer who forgets all three still ships a usable picker for screen-reader users.
+- **`<span>`-not-`<mark>`** for the match highlight · prevents JAWS / NVDA in verbose modes from announcing "marked" / "marked end" around every matched substring.
+- **`tags-alpine` announces filtered counts** on the polite live region the same way `searchable` / `multi` do.
+
 ### v2.6 highlights
 
 - **Debounced remote search.** Pass `:search-url="route('prey.search')"` (and optional `:debounce-ms="200"`) to `searchable-alpine`, `multi-alpine`, or `tags-alpine`. Typing fires a debounced `GET ${url}?q=…` that returns a JSON array of items; `AbortController` discards in-flight requests when the next keystroke lands so stale responses never overwrite fresh ones. The trigger's search input flips `aria-busy="true"` and a small accent-coloured spinner renders inside the input while a request is open.

@@ -67,6 +67,7 @@
             'limit_reached' => 'Maximum number of selections reached.',
             'selected_summary' => 'selected',
             'loading' => 'Searching…',
+            'search_failed' => 'Search failed. Try again.',
         ],
     ];
 @endphp
@@ -104,8 +105,9 @@
             aria-controls="{{ $listboxId }}"
             :aria-expanded="open"
             :aria-activedescendant="open ? activeOptionId() : null"
-            @if ($label) aria-label="{{ $label }}" @endif
-            @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
+            @if ($label) aria-label="{{ $label }}"
+            @elseif ($labelledBy) aria-labelledby="{{ $labelledBy }}"
+            @else aria-label="{{ $placeholder }}" @endif
             @if ($required) aria-required="true" @endif
             @if ($disabled) aria-disabled="true" @endif
             @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
@@ -240,7 +242,8 @@
                     </span>
                 </li>
             </template>
-            <li x-show="filtered.length === 0" class="lc-select__no-results" role="presentation">{{ $noResultsLabel }}</li>
+            <li x-show="filtered.length === 0 && !searchError" class="lc-select__no-results" role="presentation">{{ $noResultsLabel }}</li>
+            <li x-show="searchError" x-cloak class="lc-select__error-row" role="alert" x-text="searchError"></li>
         </ul>
     </div>
 
@@ -279,6 +282,7 @@
                         searchUrl: config.searchUrl || null,
                         debounceMs: config.debounceMs,
                         loading: false,
+                        searchError: '',
                         _remote: null,
 
                         get filtered() {
@@ -342,6 +346,8 @@
                             this.open = false;
                             this.query = '';
                             this.cursor = 0;
+                            this.searchError = '';
+                            if (this._remote) this._remote.cancel();
                             this.focusTrigger();
                         },
 
@@ -426,8 +432,9 @@
                                 this._remote = window.lcMakeRemoteSearch({
                                     url: () => this.searchUrl,
                                     debounceMs: () => this.debounceMs ?? 250,
-                                    onLoading: (v) => { this.loading = v; if (v) this.liveMessage = this.a11y.loading || 'Searching…'; },
+                                    onLoading: (v) => { this.loading = v; if (v) { this.searchError = ''; this.liveMessage = this.a11y.loading || 'Searching…'; } },
                                     onResult: (items) => {
+                                        this.searchError = '';
                                         this.items = (items || []).map((o) => ({
                                             key: String(o.key ?? ''),
                                             title: String(o.title ?? ''),
@@ -435,6 +442,11 @@
                                             svg: String(o.svg ?? ''),
                                         }));
                                         this.cursor = 0;
+                                    },
+                                    onError: (err) => {
+                                        this.searchError = this.a11y.search_failed || 'Search failed.';
+                                        this.liveMessage = this.searchError;
+                                        console.error('[lc-select]', err);
                                     },
                                 });
                                 this.$watch('query', (q) => this._remote.queue(q));

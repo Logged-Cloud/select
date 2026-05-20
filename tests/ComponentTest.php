@@ -327,6 +327,62 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── robustness + a11y (v2.7) ──────────────────────────────────────
+
+test('search-helper renders match as <span>, not <mark>, so JAWS stays quiet', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/search-helpers.blade.php');
+    expect($tpl)
+        ->toContain("'<span class=\"lc-select__match\">'")
+        ->and($tpl)->not->toContain("'<mark");
+});
+
+test('every search-bearing variant cancels the remote fetch on close()', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)->toContain('this._remote.cancel()');
+    }
+});
+
+test('remote hook surfaces fetch errors via an in-menu alert row + live region', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('searchError')
+            ->and($tpl)->toContain("'search_failed'")
+            ->and($tpl)->toContain('onError:')
+            ->and($tpl)->toContain('lc-select__error-row')
+            ->and($tpl)->toContain('role="alert"');
+    }
+});
+
+test('tags-alpine trims + dedupes custom entries case-insensitively', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tags-alpine.blade.php');
+    expect($tpl)
+        ->toContain('typeof key === \'string\' ? key.trim() : key')
+        ->and($tpl)->toContain('String(v).toLowerCase() === lower')
+        ->and($tpl)->toContain('o.title.toLowerCase() === lower');
+});
+
+test('triggers always have an accessible name (label / labelledBy / placeholder)', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        // The three-way @if/@elseif/@else chain ensures one of label /
+        // labelledBy / placeholder always provides an accessible name.
+        expect($tpl)
+            ->toContain('@if ($label) aria-label="{{ $label }}"')
+            ->and($tpl)->toContain('@elseif ($labelledBy)')
+            ->and($tpl)->toContain('@else aria-label="{{ $placeholder }}"');
+    }
+});
+
+test('styles ship a .lc-select__error-row with forced-colors fallback', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toContain('.lc-select__error-row')
+        ->and($css)->toContain('color-mix(in srgb, #ef4444')
+        ->and($css)->toMatch('/\.lc-select__error-row\s*{[^}]*color:\s*Mark/s');
+});
+
 // ─── remote search hook (v2.6 · debounce + fetch) ──────────────────
 
 test('search-helper partial ships a remote-search factory with abort + debounce', function () {
