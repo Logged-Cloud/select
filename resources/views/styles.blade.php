@@ -94,7 +94,32 @@
     border-bottom-color: var(--lc-accent);
     box-shadow: inset 0 -2px 0 0 var(--lc-accent);
 }
-.lc-select__list { list-style: none; margin: 0; padding: .25rem; overflow-y: auto; }
+.lc-select__list {
+    list-style: none;
+    margin: 0;
+    padding: .25rem;
+    overflow-y: auto;
+    /* Themed scrollbar · Firefox first, then WebKit. The track stays
+       transparent so the menu's --lc-menu-bg shows through; the thumb
+       picks up the host theme's --lc-border with a hover state on
+       --lc-ink-dim. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--lc-border) transparent;
+}
+.lc-select__list::-webkit-scrollbar { width: 10px; }
+.lc-select__list::-webkit-scrollbar-track { background: transparent; }
+.lc-select__list::-webkit-scrollbar-thumb {
+    background: var(--lc-border);
+    border-radius: 999px;
+    /* 2px transparent border around the thumb gives the appearance of
+       a rounded bar floating inside the track rather than filling it. */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+.lc-select__list::-webkit-scrollbar-thumb:hover {
+    background: var(--lc-ink-dim);
+    background-clip: padding-box;
+}
 .lc-select__item {
     display: flex;
     align-items: center;
