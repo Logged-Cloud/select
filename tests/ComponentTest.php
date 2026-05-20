@@ -166,6 +166,112 @@ test('radio-grid-alpine posts a single value via a hidden input', function () us
         ->and($template)->toContain(':value="value"');
 });
 
+// ─── radio-list-alpine ─────────────────────────────────────────────
+
+test('radio-list-alpine is a vertical WAI radiogroup', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/radio-list-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="radiogroup"')
+        ->and($tpl)->toContain('role="radio"')
+        ->and($tpl)->toContain('aria-checked')
+        ->and($tpl)->toContain('arrow-down.prevent')
+        ->and($tpl)->toContain('arrow-up.prevent');
+});
+
+// ─── multi-grid-alpine ─────────────────────────────────────────────
+
+test('multi-grid-alpine uses aria-pressed toggle-button semantics', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/multi-grid-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="group"')
+        ->and($tpl)->toContain('aria-pressed')
+        ->and($tpl)->not->toContain('role="radio"');
+});
+
+test('multi-grid-alpine posts hidden inputs with name[] convention', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/multi-grid-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'[]'")
+        ->and($tpl)->toContain('input type="hidden"');
+});
+
+test('multi-grid-alpine respects an optional max cap', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/multi-grid-alpine.blade.php');
+    expect($tpl)->toContain('limit_reached');
+});
+
+// ─── multi-list-alpine ─────────────────────────────────────────────
+
+test('multi-list-alpine is a vertical group of toggle buttons', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/multi-list-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="group"')
+        ->and($tpl)->toContain('aria-pressed')
+        ->and($tpl)->toContain('lc-multi-list__item');
+});
+
+// ─── inline-buttons-alpine ─────────────────────────────────────────
+
+test('inline-buttons-alpine is a horizontal radiogroup with left/right keys', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/inline-buttons-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="radiogroup"')
+        ->and($tpl)->toContain('role="radio"')
+        ->and($tpl)->toContain('arrow-right.prevent')
+        ->and($tpl)->toContain('arrow-left.prevent')
+        ->and($tpl)->not->toContain('arrow-down.prevent');
+});
+
+// ─── card-single-alpine ────────────────────────────────────────────
+
+test('card-single-alpine is a WAI radiogroup with 4-direction navigation', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/card-single-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="radiogroup"')
+        ->and($tpl)->toContain('role="radio"')
+        ->and($tpl)->toContain('arrow-right.prevent')
+        ->and($tpl)->toContain('arrow-down.prevent')
+        ->and($tpl)->toContain('arrow-left.prevent')
+        ->and($tpl)->toContain('arrow-up.prevent');
+});
+
+// ─── card-multi-alpine ─────────────────────────────────────────────
+
+test('card-multi-alpine uses toggle-button semantics + name[] posting', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/card-multi-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="group"')
+        ->and($tpl)->toContain('aria-pressed')
+        ->and($tpl)->toContain("'[]'")
+        ->and($tpl)->toContain('limit_reached');
+});
+
+// ─── CSS hooks for the v2.2 variants ───────────────────────────────
+
+test('styles ship CSS hooks for every v2.2 variant', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-radio-list', '.lc-radio-list__item', '.lc-radio-list__dot',
+        '.lc-multi-grid', '.lc-multi-grid__item', '.lc-multi-grid__check',
+        '.lc-multi-list', '.lc-multi-list__item',
+        '.lc-inline-buttons', '.lc-inline-buttons__item',
+        '.lc-cards', '.lc-cards__item', '.lc-cards__check',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+});
+
+test('forced-colors block covers every variant', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-radio-list__item', '.lc-radio-grid__item',
+        '.lc-multi-grid__item', '.lc-multi-list__item',
+        '.lc-inline-buttons__item', '.lc-cards__item',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+});
+
 // ─── styles ────────────────────────────────────────────────────────
 
 test('styles file ships CSS hooks for every variant', function () use ($styles) {

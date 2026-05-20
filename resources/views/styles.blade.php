@@ -223,6 +223,248 @@
 .lc-radio-grid__title { font-size: 0.85rem; font-weight: 500; }
 .lc-radio-grid__subtitle { font-size: 0.72rem; color: var(--lc-ink-dim); margin-top: .15rem; }
 
+/* ── radio-list-alpine specifics ────────────────────────────────────── */
+
+.lc-radio-list { display: flex; flex-direction: column; gap: .35rem; }
+.lc-radio-list__item {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    padding: .55rem .75rem;
+    color: var(--lc-ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font: inherit;
+    text-align: left;
+    width: 100%;
+}
+.lc-radio-list__item:hover { border-color: var(--lc-ink-dim); }
+.lc-radio-list__item:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+    border-color: var(--lc-accent);
+}
+.lc-radio-list__item.is-selected {
+    border-color: var(--lc-accent);
+    background: color-mix(in srgb, var(--lc-accent) 8%, var(--lc-bg));
+}
+.lc-radio-list__dot {
+    width: 1.05rem; height: 1.05rem;
+    border-radius: 999px;
+    border: 1.5px solid var(--lc-border);
+    flex: none;
+    display: grid;
+    place-items: center;
+}
+.lc-radio-list__item.is-selected .lc-radio-list__dot { border-color: var(--lc-accent); }
+.lc-radio-list__dot-inner {
+    width: 0.55rem; height: 0.55rem;
+    border-radius: 999px;
+    background: var(--lc-accent);
+}
+.lc-radio-list__icon {
+    width: var(--lc-icon-size, 1.5rem);
+    height: var(--lc-icon-size, 1.5rem);
+    border-radius: calc(var(--lc-radius) - .15rem);
+    background: var(--lc-icon-bg);
+    display: grid;
+    place-items: center;
+    color: var(--lc-accent);
+    flex: none;
+}
+.lc-radio-list__icon svg { width: 70%; height: 70%; }
+.lc-radio-list__body { display: flex; flex-direction: column; min-width: 0; }
+.lc-radio-list__title { font-weight: 500; }
+.lc-radio-list__subtitle { font-size: 0.78rem; color: var(--lc-ink-dim); }
+
+/* ── multi-grid-alpine + multi-list-alpine ──────────────────────────── */
+
+.lc-multi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--lc-cell-min, 6.5rem), 1fr));
+    gap: .5rem;
+}
+.lc-multi-grid__item,
+.lc-multi-list__item {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    color: var(--lc-ink);
+    cursor: pointer;
+    font: inherit;
+    position: relative;
+}
+.lc-multi-grid__item {
+    padding: .65rem .5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.lc-multi-list { display: flex; flex-direction: column; gap: .35rem; }
+.lc-multi-list__item {
+    padding: .55rem .75rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    text-align: left;
+    width: 100%;
+}
+.lc-multi-grid__item:hover,
+.lc-multi-list__item:hover { border-color: var(--lc-ink-dim); }
+.lc-multi-grid__item:focus-visible,
+.lc-multi-list__item:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+    border-color: var(--lc-accent);
+}
+.lc-multi-grid__item.is-selected,
+.lc-multi-list__item.is-selected {
+    border-color: var(--lc-accent);
+    background: color-mix(in srgb, var(--lc-accent) 12%, var(--lc-bg));
+    color: var(--lc-accent);
+}
+.lc-multi-grid__check,
+.lc-multi-list__check {
+    width: 1.1rem; height: 1.1rem;
+    border-radius: .25rem;
+    border: 1.5px solid var(--lc-border);
+    display: grid;
+    place-items: center;
+    color: var(--lc-accent);
+    flex: none;
+}
+.lc-multi-grid__check {
+    position: absolute;
+    top: .4rem;
+    right: .4rem;
+}
+.lc-multi-grid__item.is-selected .lc-multi-grid__check,
+.lc-multi-list__item.is-selected .lc-multi-list__check {
+    background: color-mix(in srgb, var(--lc-accent) 18%, transparent);
+    border-color: var(--lc-accent);
+}
+.lc-multi-grid__icon,
+.lc-multi-list__icon {
+    width: var(--lc-icon-size, 1.5rem);
+    height: var(--lc-icon-size, 1.5rem);
+    display: grid;
+    place-items: center;
+    color: var(--lc-accent);
+    flex: none;
+}
+.lc-multi-grid__icon { margin-bottom: .35rem; }
+.lc-multi-grid__icon svg, .lc-multi-list__icon svg { width: 100%; height: 100%; }
+.lc-multi-grid__title { font-size: 0.85rem; font-weight: 500; }
+.lc-multi-grid__subtitle { font-size: 0.72rem; color: var(--lc-ink-dim); margin-top: .15rem; }
+.lc-multi-list__body { display: flex; flex-direction: column; min-width: 0; }
+.lc-multi-list__title { font-weight: 500; }
+.lc-multi-list__subtitle { font-size: 0.78rem; color: var(--lc-ink-dim); }
+
+/* ── inline-buttons-alpine (segmented control) ──────────────────────── */
+
+.lc-inline-buttons {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    padding: .2rem;
+    background: var(--lc-icon-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: 999px;
+}
+.lc-inline-buttons__item {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    border-radius: 999px;
+    border: 0;
+    background: transparent;
+    color: var(--lc-ink-dim);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+}
+.lc-inline-buttons__item:hover { color: var(--lc-ink); }
+.lc-inline-buttons__item:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+}
+.lc-inline-buttons__item.is-selected {
+    background: var(--lc-bg);
+    color: var(--lc-accent);
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.lc-inline-buttons__icon { display: inline-grid; place-items: center; color: var(--lc-accent); }
+
+/* ── card-single + card-multi (big visual cards) ────────────────────── */
+
+.lc-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--lc-cell-min, 12rem), 1fr));
+    gap: .75rem;
+}
+.lc-cards__item {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    padding: 1.25rem 1rem;
+    color: var(--lc-ink);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .5rem;
+    font: inherit;
+    text-align: left;
+    position: relative;
+    transition: border-color .12s, background .12s, transform .12s;
+}
+.lc-cards__item:hover {
+    border-color: var(--lc-ink-dim);
+    transform: translateY(-1px);
+}
+.lc-cards__item:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+    border-color: var(--lc-accent);
+}
+.lc-cards__item.is-selected {
+    border-color: var(--lc-accent);
+    background: color-mix(in srgb, var(--lc-accent) 8%, var(--lc-bg));
+    box-shadow: 0 0 0 1px var(--lc-accent);
+}
+.lc-cards__check {
+    position: absolute;
+    top: .65rem;
+    right: .65rem;
+    width: 1.4rem; height: 1.4rem;
+    border-radius: 999px;
+    background: var(--lc-accent);
+    color: var(--lc-on-accent, white);
+    display: grid;
+    place-items: center;
+}
+.lc-cards__icon {
+    width: var(--lc-icon-size, 2.5rem);
+    height: var(--lc-icon-size, 2.5rem);
+    border-radius: calc(var(--lc-radius) + .1rem);
+    background: var(--lc-icon-bg);
+    display: grid;
+    place-items: center;
+    color: var(--lc-accent);
+    flex: none;
+}
+.lc-cards__icon svg { width: 65%; height: 65%; }
+.lc-cards__title { font-size: 1rem; font-weight: 600; }
+.lc-cards__subtitle {
+    font-size: 0.85rem;
+    color: var(--lc-ink-dim);
+    line-height: 1.35;
+}
+
 /* Visually-hidden region for aria-live announcements. Same rules as
    Tailwind's sr-only · invisible to sighted users, picked up by screen
    readers. */
@@ -248,13 +490,31 @@
 /* High-contrast / forced-colours mode (Windows High Contrast) · let the
    browser repaint borders and focus rings, but keep the structure. */
 @media (forced-colors: active) {
-    .lc-select__trigger {
+    .lc-select__trigger,
+    .lc-radio-list__item,
+    .lc-radio-grid__item,
+    .lc-multi-grid__item,
+    .lc-multi-list__item,
+    .lc-inline-buttons__item,
+    .lc-cards__item {
         border: 1px solid CanvasText;
     }
-    .lc-select__trigger:focus-visible {
+    .lc-select__trigger:focus-visible,
+    .lc-radio-list__item:focus-visible,
+    .lc-radio-grid__item:focus-visible,
+    .lc-multi-grid__item:focus-visible,
+    .lc-multi-list__item:focus-visible,
+    .lc-inline-buttons__item:focus-visible,
+    .lc-cards__item:focus-visible {
         outline: 2px solid Highlight;
     }
-    .lc-select__item.is-active {
+    .lc-select__item.is-active,
+    .lc-radio-list__item.is-selected,
+    .lc-radio-grid__item.is-selected,
+    .lc-multi-grid__item.is-selected,
+    .lc-multi-list__item.is-selected,
+    .lc-inline-buttons__item.is-selected,
+    .lc-cards__item.is-selected {
         background: Highlight;
         color: HighlightText;
     }
