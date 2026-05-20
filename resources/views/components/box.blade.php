@@ -10,9 +10,16 @@
     'noResultsLabel' => null,
     'searchable' => null,
     'iconSize' => null,
+    'label' => null,
+    'labelledBy' => null,
+    'required' => false,
+    'disabled' => false,
 ])
 @php
-    $id = $id ?? $name;
+    $triggerId = $id ?? $name;
+    $listboxId = $triggerId.'-listbox';
+    $searchId = $triggerId.'-search';
+    $liveId = $triggerId.'-live';
     $allowEmpty = $allowEmpty ?? config('select.behavior.allow_empty', true);
     $searchable = $searchable ?? config('select.behavior.searchable', true);
     $iconSize = $iconSize ?? config('select.behavior.icon_size', '1.75rem');
@@ -21,7 +28,7 @@
     $searchLabel = $searchLabel ?? config('select.copy.search_label', 'Search...');
     $noResultsLabel = $noResultsLabel ?? config('select.copy.no_results_label', 'No options match that.');
 
-    // Normalise items. Caller may pass arrays or objects with key/title/subtitle/svg;
+    // Caller may pass arrays or objects with key/title/subtitle/svg;
     // we coerce to a plain shape so the Alpine data is predictable.
     $normalised = collect($items)->map(function ($item) {
         if (is_array($item)) {
@@ -44,24 +51,54 @@
         'allowEmpty' => (bool) $allowEmpty,
         'searchable' => (bool) $searchable,
         'emptyLabel' => $emptyLabel,
+        'listboxId' => $listboxId,
+        'searchId' => $searchId,
+        'liveId' => $liveId,
+        'triggerId' => $triggerId,
+        'a11y' => [
+            'options_available' => 'options available',
+            'no_options' => 'No options.',
+            'selected' => 'Selected',
+            'cleared' => 'Selection cleared',
+        ],
     ];
 @endphp
 <div x-data="loggedCloudSelect({{ \Illuminate\Support\Js::from($config) }})"
      x-init="$nextTick(() => syncSelectedFromValue())"
      class="lc-select"
      style="--lc-icon-size: {{ $iconSize }};"
-     @click.outside="open = false"
-     @keydown.escape.window="open = false">
+     @click.outside="close()"
+     @keydown.escape.window="if (open) { close(); }">
 
-    <input type="hidden" name="{{ $name }}" :value="value" x-ref="hidden">
+    <input type="hidden" name="{{ $name }}" :value="value" x-ref="hidden"
+           @if ($required) required @endif>
 
-    <button type="button" id="{{ $id }}"
+    <button type="button"
+            id="{{ $triggerId }}"
+            x-ref="trigger"
             class="lc-select__trigger"
             :class="{ 'is-open': open }"
-            @click="toggle()" :aria-expanded="open">
+            role="combobox"
+            aria-haspopup="listbox"
+            aria-autocomplete="{{ $searchable ? 'list' : 'none' }}"
+            aria-controls="{{ $listboxId }}"
+            :aria-expanded="open"
+            :aria-activedescendant="open ? activeOptionId() : null"
+            @if ($label) aria-label="{{ $label }}" @endif
+            @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
+            @if ($required) aria-required="true" @endif
+            @if ($disabled) aria-disabled="true" disabled @endif
+            @click="toggle()"
+            @keydown.arrow-down.prevent="open ? move(1) : openMenu(0)"
+            @keydown.arrow-up.prevent="open ? move(-1) : openMenu(filtered.length - 1)"
+            @keydown.home.prevent="if (open) { cursor = 0; }"
+            @keydown.end.prevent="if (open) { cursor = filtered.length - 1; }"
+            @keydown.enter.prevent="open ? pickAt(cursor) : openMenu(currentIndex())"
+            @keydown.space.prevent="open ? pickAt(cursor) : openMenu(currentIndex())"
+            @keydown.tab="if (open) { close(); }">
         <span class="lc-select__chosen">
             <template x-if="selected">
-                <span class="lc-select__icon">
+                <span class="lc-select__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
                          stroke="currentColor" stroke-width="1.8"
                          stroke-linecap="round" stroke-linejoin="round">
@@ -75,36 +112,61 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round"
-             class="lc-select__chevron">
+             class="lc-select__chevron" aria-hidden="true">
             <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
     </button>
 
     <div x-show="open" x-cloak x-transition.opacity.duration.100ms class="lc-select__menu">
         @if ($searchable)
-            <input type="text" x-ref="search" x-model="query"
-                   class="lc-select__search" placeholder="{{ $searchLabel }}"
-                   @keydown.arrow-down.prevent="cursor = Math.min(cursor + 1, filtered.length - 1)"
-                   @keydown.arrow-up.prevent="cursor = Math.max(cursor - 1, 0)"
-                   @keydown.enter.prevent="pickAt(cursor)">
+            <input type="text"
+                   id="{{ $searchId }}"
+                   x-ref="search" x-model="query"
+                   class="lc-select__search"
+                   placeholder="{{ $searchLabel }}"
+                   role="searchbox"
+                   aria-controls="{{ $listboxId }}"
+                   aria-label="{{ $searchLabel }}"
+                   :aria-activedescendant="activeOptionId()"
+                   autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                   @keydown.arrow-down.prevent="move(1)"
+                   @keydown.arrow-up.prevent="move(-1)"
+                   @keydown.home.prevent="cursor = 0"
+                   @keydown.end.prevent="cursor = filtered.length - 1"
+                   @keydown.page-down.prevent="cursor = Math.min(cursor + 5, filtered.length - 1)"
+                   @keydown.page-up.prevent="cursor = Math.max(cursor - 5, 0)"
+                   @keydown.enter.prevent="pickAt(cursor)"
+                   @keydown.tab="close()">
         @endif
-        <ul class="lc-select__list" role="listbox">
+        <ul class="lc-select__list"
+            id="{{ $listboxId }}"
+            x-ref="listbox"
+            role="listbox"
+            tabindex="-1"
+            @if ($label) aria-label="{{ $label }}"
+            @elseif ($labelledBy) aria-labelledby="{{ $labelledBy }}"
+            @else aria-label="Options" @endif>
             @if ($allowEmpty)
                 <li role="option"
-                    @click="clear()"
-                    :class="!selected && 'is-active'"
+                    :id="optionId('__empty')"
+                    :aria-selected="!selected ? 'true' : 'false'"
+                    @click="clear(); focusTrigger();"
+                    :class="cursor === -1 && 'is-active'"
+                    @mouseenter="cursor = -1"
                     class="lc-select__item lc-select__item--empty">
-                    <span class="lc-select__icon lc-select__icon--empty"></span>
+                    <span class="lc-select__icon lc-select__icon--empty" aria-hidden="true"></span>
                     <span class="lc-select__placeholder">{{ $emptyLabel }}</span>
                 </li>
             @endif
             <template x-for="(opt, i) in filtered" :key="opt.key">
                 <li role="option"
+                    :id="optionId(opt.key)"
+                    :aria-selected="selected?.key === opt.key ? 'true' : 'false'"
                     :class="{ 'is-active': i === cursor, 'is-selected': selected?.key === opt.key }"
-                    @click="pickAt(i)"
+                    @click="pickAt(i); focusTrigger();"
                     @mouseenter="cursor = i"
                     class="lc-select__item">
-                    <span class="lc-select__icon">
+                    <span class="lc-select__icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
                              stroke="currentColor" stroke-width="1.8"
                              stroke-linecap="round" stroke-linejoin="round">
@@ -117,9 +179,13 @@
                     </span>
                 </li>
             </template>
-            <li x-show="filtered.length === 0" class="lc-select__no-results">{{ $noResultsLabel }}</li>
+            <li x-show="filtered.length === 0" class="lc-select__no-results" role="presentation">{{ $noResultsLabel }}</li>
         </ul>
     </div>
+
+    {{-- Polite live region: announces filtered-results count + selection
+         changes to assistive tech without grabbing focus. --}}
+    <div id="{{ $liveId }}" class="lc-select__live" aria-live="polite" aria-atomic="true" x-text="liveMessage"></div>
 
     @once
         @include('select::styles')
@@ -136,11 +202,16 @@
                         allowEmpty: !!config.allowEmpty,
                         searchable: !!config.searchable,
                         emptyLabel: config.emptyLabel || '',
+                        listboxId: config.listboxId,
+                        searchId: config.searchId,
+                        triggerId: config.triggerId,
+                        a11y: config.a11y || {},
                         value: config.selected || '',
                         selected: null,
                         query: '',
                         open: false,
                         cursor: 0,
+                        liveMessage: '',
 
                         get filtered() {
                             const q = this.query.trim().toLowerCase();
@@ -156,14 +227,76 @@
                             this.selected = this.items.find((o) => o.key === this.value) || null;
                         },
 
+                        optionId(key) {
+                            // Keys may carry chars unsafe in id attributes; encode + namespace.
+                            const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
+                            return this.listboxId + '__opt-' + safe;
+                        },
+
+                        currentIndex() {
+                            const i = this.filtered.findIndex((o) => o.key === this.value);
+                            return i >= 0 ? i : 0;
+                        },
+
+                        activeOptionId() {
+                            if (!this.open) return null;
+                            if (this.cursor === -1 && this.allowEmpty) return this.optionId('__empty');
+                            const opt = this.filtered[this.cursor];
+                            return opt ? this.optionId(opt.key) : null;
+                        },
+
                         toggle() {
-                            this.open = !this.open;
-                            if (this.open) {
-                                this.cursor = Math.max(0, this.filtered.findIndex((o) => o.key === this.value));
-                                if (this.searchable) {
-                                    this.$nextTick(() => this.$refs.search?.focus());
-                                }
+                            this.open ? this.close() : this.openMenu(this.currentIndex());
+                        },
+
+                        openMenu(cursor) {
+                            this.open = true;
+                            this.cursor = Math.max(this.allowEmpty ? -1 : 0, Math.min(cursor, this.filtered.length - 1));
+                            this.announceResults();
+                            if (this.searchable) {
+                                this.$nextTick(() => this.$refs.search?.focus());
                             }
+                            this.$nextTick(() => this.scrollActiveIntoView());
+                        },
+
+                        close() {
+                            if (!this.open) return;
+                            this.open = false;
+                            this.query = '';
+                            this.cursor = 0;
+                            this.focusTrigger();
+                        },
+
+                        focusTrigger() {
+                            this.$nextTick(() => this.$refs.trigger?.focus());
+                        },
+
+                        move(delta) {
+                            const min = this.allowEmpty ? -1 : 0;
+                            const max = this.filtered.length - 1;
+                            this.cursor = Math.max(min, Math.min(this.cursor + delta, max));
+                            this.scrollActiveIntoView();
+                        },
+
+                        scrollActiveIntoView() {
+                            const id = this.activeOptionId();
+                            if (!id) return;
+                            const el = document.getElementById(id);
+                            if (el && typeof el.scrollIntoView === 'function') {
+                                el.scrollIntoView({ block: 'nearest', behavior: 'instant' in HTMLElement.prototype ? 'auto' : 'auto' });
+                            }
+                        },
+
+                        announceResults() {
+                            const n = this.filtered.length;
+                            this.liveMessage = n === 0
+                                ? (this.a11y.no_options || 'No options.')
+                                : n + ' ' + (this.a11y.options_available || 'options available');
+                        },
+
+                        announceSelection(opt) {
+                            const label = (this.a11y.selected || 'Selected') + ' ' + (opt?.title || '');
+                            this.liveMessage = label.trim();
                         },
 
                         pickAt(i) {
@@ -171,17 +304,34 @@
                             if (!opt) return;
                             this.value = opt.key;
                             this.selected = opt;
+                            this.announceSelection(opt);
                             this.open = false;
                             this.query = '';
+                            this.cursor = 0;
                             this.$refs.hidden?.dispatchEvent(new Event('change', { bubbles: true }));
+                            this.focusTrigger();
                         },
 
                         clear() {
                             this.value = '';
                             this.selected = null;
+                            this.liveMessage = this.a11y.cleared || 'Selection cleared';
                             this.open = false;
                             this.query = '';
+                            this.cursor = 0;
                             this.$refs.hidden?.dispatchEvent(new Event('change', { bubbles: true }));
+                            this.focusTrigger();
+                        },
+
+                        init() {
+                            this.$watch('filtered', () => {
+                                if (this.open) this.announceResults();
+                                // Keep the cursor inside the new bounds when filtering.
+                                const max = this.filtered.length - 1;
+                                if (this.cursor > max) this.cursor = max;
+                                const min = this.allowEmpty ? -1 : 0;
+                                if (this.cursor < min) this.cursor = min;
+                            });
                         },
                     }));
                 });

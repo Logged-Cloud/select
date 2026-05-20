@@ -64,6 +64,46 @@ respected — the component renders them in the order you pass them.
 | `no-results-label` | "No options match that." | Empty-search copy. |
 | `searchable` | `true` | Show the search input above the list. |
 | `icon-size` | `1.75rem` | Tile size of each row's icon square. |
+| `label` | `null` | Accessible name announced by screen readers (sets `aria-label` on the trigger + listbox). Use this **or** `labelled-by`. |
+| `labelled-by` | `null` | id of an existing visible `<label>` to associate with the combobox via `aria-labelledby`. |
+| `required` | `false` | Marks the hidden input as required and sets `aria-required="true"`. |
+| `disabled` | `false` | Disables the trigger and sets `aria-disabled="true"`. |
+
+## Accessibility
+
+The component implements the [WAI-ARIA Authoring Practices combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with a list popup.
+
+**Roles & state**
+
+- Trigger button: `role="combobox"`, `aria-haspopup="listbox"`, `aria-controls`, `aria-expanded`, `aria-activedescendant`, `aria-autocomplete="list"`. Carries `aria-required` and `aria-disabled` from props.
+- Listbox: `role="listbox"`, `aria-label` or `aria-labelledby` from props (defaults to `"Options"`), `tabindex="-1"`.
+- Options: `role="option"`, `aria-selected="true"` on the chosen row + a `✓` glyph so the state survives forced-colours / monochrome.
+
+**Keyboard**
+
+| Key | Closed | Open |
+| --- | --- | --- |
+| `Enter` / `Space` | Open at current selection | Pick the active option |
+| `↓` | Open + first option | Move down |
+| `↑` | Open + last option | Move up |
+| `Home` | — | Jump to first |
+| `End` | — | Jump to last |
+| `PageDown` / `PageUp` | — | ±5 options |
+| `Esc` | — | Close & return focus to trigger |
+| `Tab` | — | Close & let focus flow naturally |
+| Typing | — | Filters the list (when `searchable`) |
+
+**Focus management** — opening the menu moves focus to the search input (or keeps the trigger if `searchable=false`); selecting or clearing closes the menu and returns focus to the trigger.
+
+**Live region** — a visually-hidden `aria-live="polite"` region announces the filtered result count as you type and the selected label when you pick a row.
+
+**Visible focus** — the trigger gets a 2px `outline` + offset that meets WCAG 2.4.7 non-text contrast against the host theme's accent colour. Each active row gets an inset accent ring.
+
+**`prefers-reduced-motion`** — the menu fade and row transitions are disabled.
+
+**`forced-colors` mode** — Windows High Contrast picks up `CanvasText` / `Highlight` / `HighlightText` so the chrome stays readable.
+
+**Touch & screen readers** — no `pointer-events` traps. Tested against the structural ARIA contract; SR coverage left to the host app to verify with its own tooling.
 
 ## Theming
 
