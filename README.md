@@ -19,8 +19,32 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | `searchable-alpine` + `:search-url` | <img src="docs/images/searchable-remote.png" width="280" alt="searchable-remote"> | ✓ remote | — | same component, debounced server-side search |
 | `card-single-alpine` + `:page-size` | <img src="docs/images/card-paginated.png" width="280" alt="card-paginated"> | — | — | same component, prev/next pagination |
 | `searchable-alpine` + `:depends-on` | <img src="docs/images/depends-on.png" width="280" alt="depends-on"> | ✓ scoped | — | child select gated + scoped by a parent field |
+| [`map-svg-alpine`](#x-selectmap-svg-alpine) (world) | <img src="docs/images/map-world.png" width="280" alt="map-world"> | — | — | SVG map menu · click a country |
+| `map-svg-alpine` (country detail) | <img src="docs/images/map-uk.png" width="280" alt="map-uk"> | — | — | UK outline + city points |
+| `map-svg-alpine` drilldown | <img src="docs/images/map-drilldown.png" width="280" alt="map-drilldown"> | — | — | world → country → town via `depends-on` |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v3.0 highlights · `map-svg-alpine` + bundled world / UK data
+
+- **New variant `map-svg-alpine`** · same trigger / menu / a11y pattern as the dropdown family, but the menu content is an `<svg>` with each item as a clickable `<path>` (polygon) or `<circle>` (point). Keyboard arrow / Home / End cycle through items; the bottom hover-strip shows the active item's title.
+- **Bundled data**:
+  - `world.json` — Natural Earth admin-0 110m, ~180 countries as SVG paths (~112KB).
+  - `uk.json` — UK outline + ~40 major city points (~2.8KB).
+  - `uk-towns.json` — hand-curated boroughs / suburbs for London, Manchester, Birmingham, Glasgow, Edinburgh (~4KB).
+- **Helper** `LoggedCloud\Select\MapData::world()` / `::uk()` / `::ukTowns($cityKey)` returns the dataset arrays so apps can pass them inline.
+- **Drilldown** is just the existing `:depends-on` chain · three `map-svg-alpine` stacked, each gated by the previous selection. No new composer needed.
+- **Data shape is open** · supply your own `{viewBox, items: [{key, title, path?, cx?, cy?}], outline?}` arrays for any country / region. The bundled UK data is a worked example; the Python builder under `bin/build-map-data.py` is the reference pipeline.
+
+```blade
+<x-select::map-svg-alpine name="country" dataset="world" label="Country" />
+
+{{-- Drilldown using depends-on · child unlocks when parent is set --}}
+<x-select::map-svg-alpine name="city" dataset="uk"
+    depends-on="country" depends-message="Pick a country first" />
+<x-select::map-svg-alpine name="town" dataset="uk-towns:london"
+    depends-on="city" />
+```
 
 ### v2.11 highlights (R.A.P pass on v2.10 additions)
 

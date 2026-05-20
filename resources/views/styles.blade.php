@@ -88,6 +88,74 @@
     outline-offset: 1px;
 }
 
+/* SVG map · the menu content for map-svg-alpine. The container is the
+   familiar dropdown menu but the listbox is an <svg> instead of a <ul>. */
+.lc-select__menu--map {
+    max-height: 75vh;
+    padding: .5rem;
+    overflow: hidden;
+}
+.lc-map {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 60vh;
+    background: color-mix(in srgb, var(--lc-ink) 4%, transparent);
+    border-radius: calc(var(--lc-radius) - .1rem);
+}
+.lc-map__outline {
+    fill: color-mix(in srgb, var(--lc-ink) 8%, transparent);
+    stroke: var(--lc-ink-dim);
+    stroke-width: 1;
+    pointer-events: none;
+}
+.lc-map__item {
+    fill: color-mix(in srgb, var(--lc-ink) 14%, transparent);
+    stroke: var(--lc-border);
+    stroke-width: .6;
+    cursor: pointer;
+    transition: fill 120ms;
+}
+.lc-map__item:hover,
+.lc-map__item.is-active {
+    fill: color-mix(in srgb, var(--lc-accent) 35%, transparent);
+}
+.lc-map__item.is-selected {
+    fill: var(--lc-accent);
+}
+.lc-map__item:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+}
+.lc-map__point {
+    fill: var(--lc-accent);
+    stroke: var(--lc-bg);
+    stroke-width: 1.5;
+    cursor: pointer;
+    transition: r 120ms, fill 120ms;
+}
+.lc-map__point:hover,
+.lc-map__point.is-active {
+    r: 9;
+}
+.lc-map__point.is-selected {
+    fill: color-mix(in srgb, var(--lc-accent) 100%, white 20%);
+    stroke-width: 2.5;
+    r: 10;
+}
+.lc-map__hover {
+    margin-top: .35rem;
+    text-align: center;
+    color: var(--lc-ink-dim);
+    font-size: .85rem;
+    min-height: 1.2em;
+}
+@media (forced-colors: active) {
+    .lc-map__item { fill: Canvas; stroke: CanvasText; }
+    .lc-map__item.is-selected { fill: Highlight; }
+    .lc-map__point { fill: Highlight; stroke: Canvas; }
+}
+
 /* Card pager · prev/next buttons + status indicator. Sits outside the
    role=radiogroup so SR users don't hear it as a fake card. */
 .lc-cards__pager {
