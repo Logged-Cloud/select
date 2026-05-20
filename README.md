@@ -22,6 +22,13 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v2.11 highlights (R.A.P pass on v2.10 additions)
+
+- **Cards — robust:** the pager `<nav>` is now a sibling of the `role="radiogroup"` / `role="group"` div, not a child, so the WAI-ARIA "radiogroup must contain only radio children" contract holds. The card variants now render as `.lc-cards-host > .lc-cards + nav.lc-cards__pager`. `page` is clamped via a `$watch('items')` so a remote refresh that shrinks the list can't leave us on an empty page.
+- **Cards — accessible:** clicking Prev/Next moves focus to the first card of the new page so keyboard arrow navigation continues naturally. Components with an initial selection open on the page containing it.
+- **Depends-on — robust:** every variant exposes an Alpine `destroy()` hook that removes the document-level `change` listener · no zombie callbacks under Livewire navigation.
+- **Depends-on — accessible:** the polite live region now announces "Selection cleared because the parent changed." (and the parent-unset variant) when the parent change auto-clears the child.
+
 ### v2.10 highlights
 
 - **Card pagination.** `card-single-alpine` + `card-multi-alpine` accept `:page-size="6"` to slice items into pages with a prev/next pager + `Page N of M` status. Keyboard arrow at the last card of a page advances to the next page and focuses its first card; arrow-up from the first card goes back. Works with any number of items.
