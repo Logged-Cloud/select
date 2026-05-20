@@ -1,7 +1,16 @@
 # logged-cloud/select
 
-A searchable Alpine-driven select dropdown with inline-SVG icons. One Blade
-component, themeable via CSS variables, item list passed in as a prop.
+A family of select widgets for Laravel apps. Each component name spells
+out which JS layer it uses and what it does, so you can pick the right
+one without reading the docs:
+
+| Component | What it is |
+| --- | --- |
+| `<x-select::searchable-alpine>` | Searchable single-select. Items shipped to the page; search runs client-side via Alpine — no network round-trip per keystroke. WAI-ARIA combobox + listbox + live region. |
+
+More variants land here as we need them (`multi-livewire`, `native`,
+`remote-livewire` for server-side search, …). The naming convention is
+`<behaviour>-<driver>` so a glance at the tag tells you everything.
 
 Sister to [logged-cloud/navigation](https://github.com/Logged-Cloud/navigation).
 Used wherever a logged.cloud family app needs an icon-led dropdown — prey
@@ -28,12 +37,13 @@ sensible defaults out of the box.
 ## Use
 
 ```blade
-<x-select::box
+<x-select::searchable-alpine
     name="prey_type"
     :items="$preyTypes"
     :selected="old('prey_type', $snake->prey_type)"
     placeholder="Pick prey..."
     empty-label="not set"
+    label="Prey type"
 />
 ```
 

@@ -1,11 +1,11 @@
 <?php
 
 test('the component template exists at the namespaced-component path', function () {
-    expect(file_exists(__DIR__.'/../resources/views/components/box.blade.php'))->toBeTrue();
+    expect(file_exists(__DIR__.'/../resources/views/components/searchable-alpine.blade.php'))->toBeTrue();
 });
 
 test('the component template references the four required item fields', function () {
-    $template = file_get_contents(__DIR__.'/../resources/views/components/box.blade.php');
+    $template = file_get_contents(__DIR__.'/../resources/views/components/searchable-alpine.blade.php');
 
     foreach (['opt.key', 'opt.title', 'opt.subtitle', 'opt.svg'] as $needle) {
         expect($template)->toContain($needle);
@@ -23,7 +23,7 @@ test('the service provider registers the namespaced view loader', function () {
 });
 
 test('the component template carries combobox + listbox ARIA roles', function () {
-    $template = file_get_contents(__DIR__.'/../resources/views/components/box.blade.php');
+    $template = file_get_contents(__DIR__.'/../resources/views/components/searchable-alpine.blade.php');
 
     foreach (['role="combobox"', 'role="listbox"', 'role="option"', 'aria-haspopup="listbox"', 'aria-controls', 'aria-expanded', 'aria-selected', 'aria-activedescendant', 'aria-live'] as $needle) {
         expect($template)->toContain($needle);
@@ -31,7 +31,7 @@ test('the component template carries combobox + listbox ARIA roles', function ()
 });
 
 test('keyboard handlers cover the core combobox shortcuts', function () {
-    $template = file_get_contents(__DIR__.'/../resources/views/components/box.blade.php');
+    $template = file_get_contents(__DIR__.'/../resources/views/components/searchable-alpine.blade.php');
 
     foreach (['arrow-down.prevent', 'arrow-up.prevent', 'home.prevent', 'end.prevent', 'enter.prevent', 'keydown.escape.window'] as $needle) {
         expect($template)->toContain($needle);
@@ -39,7 +39,7 @@ test('keyboard handlers cover the core combobox shortcuts', function () {
 });
 
 test('focus returns to the trigger after select or clear', function () {
-    $template = file_get_contents(__DIR__.'/../resources/views/components/box.blade.php');
+    $template = file_get_contents(__DIR__.'/../resources/views/components/searchable-alpine.blade.php');
 
     expect($template)
         ->toContain('focusTrigger')
