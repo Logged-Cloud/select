@@ -26,9 +26,11 @@
             default => null,
         };
         if ($loaded === null) {
-            // Town buckets are addressed as uk-towns:london, uk-towns:manchester …
             if (str_starts_with($dataset, 'uk-towns:')) {
                 $loaded = \LoggedCloud\Select\MapData::ukTowns(substr($dataset, 9));
+            } elseif (str_starts_with($dataset, 'uk:')) {
+                // uk:greater-london, uk:south-east, uk:scotland …
+                $loaded = \LoggedCloud\Select\MapData::ukRegion(substr($dataset, 3));
             }
         }
         if ($loaded !== null) {
