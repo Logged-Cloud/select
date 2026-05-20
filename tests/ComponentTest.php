@@ -327,6 +327,44 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── performance (v2.8 · memo + render cap) ────────────────────────
+
+test('search-helper ships a memoized filter factory', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/search-helpers.blade.php');
+    expect($tpl)
+        ->toContain('window.lcMakeFilter')
+        ->and($tpl)->toContain('if (items === lastItems && query === lastQuery')
+        ->and($tpl)->toContain('lastResult');
+});
+
+test('every search-bearing variant goes through the memoized filter', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('this._filter ??= window.lcMakeFilter()')
+            ->and($tpl)->toContain('get visible()')
+            ->and($tpl)->toContain('this.renderLimit')
+            ->and($tpl)->toContain("'renderLimit'");
+    }
+});
+
+test('dropdown variants render the more-row when filtered exceeds visible', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('lc-select__more-row')
+            ->and($tpl)->toContain('filtered.length > visible.length')
+            ->and($tpl)->toContain('x-for="(opt, i) in visible"');
+    }
+});
+
+test('styles ship a lc-select__more-row block', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toContain('.lc-select__more-row')
+        ->and($css)->toContain('color-mix(in srgb, var(--lc-ink)');
+});
+
 // ─── robustness + a11y (v2.7) ──────────────────────────────────────
 
 test('search-helper renders match as <span>, not <mark>, so JAWS stays quiet', function () {
@@ -441,9 +479,11 @@ test('search helper partial ships rank + highlight + escape on window', function
 test('every search-bearing variant includes the helper partial', function () {
     foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
         $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        // v2.8 swapped the direct lcRankItems call for a memoized
+        // lcMakeFilter closure · the underlying rank still runs through.
         expect($tpl)
             ->toContain("@include('select::partials.search-helpers')")
-            ->and($tpl)->toContain('lcRankItems(')
+            ->and($tpl)->toContain('window.lcMakeFilter')
             ->and($tpl)->toContain('highlight(opt.title, opt._hl?.title)');
     }
 });

@@ -17,6 +17,7 @@
     'error' => null,
     'searchUrl' => null,
     'debounceMs' => null,
+    'renderLimit' => 50,
 ])
 @php
     $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -59,6 +60,7 @@
         'chipsLimit' => (int) $chipsLimit,
         'searchUrl' => $searchUrl,
         'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
+        'renderLimit' => is_numeric($renderLimit) ? (int) $renderLimit : 50,
         'a11y' => [
             'options_available' => 'options available',
             'no_options' => 'No options.',
@@ -113,9 +115,9 @@
             @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
             @click="toggle()"
             @keydown.arrow-down.prevent="open ? move(1) : openMenu(0)"
-            @keydown.arrow-up.prevent="open ? move(-1) : openMenu(filtered.length - 1)"
+            @keydown.arrow-up.prevent="open ? move(-1) : openMenu(visible.length - 1)"
             @keydown.home.prevent="if (open) { cursor = 0; }"
-            @keydown.end.prevent="if (open) { cursor = filtered.length - 1; }"
+            @keydown.end.prevent="if (open) { cursor = visible.length - 1; }"
             @keydown.enter.prevent="open ? toggleAt(cursor) : openMenu(currentIndex())"
             @keydown.space.prevent="open ? toggleAt(cursor) : openMenu(currentIndex())"
             @keydown.tab="if (open) { close(); }">
@@ -199,7 +201,7 @@
                        @keydown.arrow-down.prevent="move(1)"
                        @keydown.arrow-up.prevent="move(-1)"
                        @keydown.home.prevent="cursor = 0"
-                       @keydown.end.prevent="cursor = filtered.length - 1"
+                       @keydown.end.prevent="cursor = visible.length - 1"
                        @keydown.enter.prevent="toggleAt(cursor)"
                        @keydown.tab="close()">
                 <span class="lc-select__spinner" x-show="loading" x-cloak aria-hidden="true"></span>
@@ -214,7 +216,7 @@
             @if ($label) aria-label="{{ $label }}"
             @elseif ($labelledBy) aria-labelledby="{{ $labelledBy }}"
             @else aria-label="Options" @endif>
-            <template x-for="(opt, i) in filtered" :key="opt.key">
+            <template x-for="(opt, i) in visible" :key="opt.key">
                 <li role="option"
                     :id="optionId(opt.key)"
                     :aria-selected="isSelected(opt.key) ? 'true' : 'false'"
@@ -243,6 +245,9 @@
                 </li>
             </template>
             <li x-show="filtered.length === 0 && !searchError" class="lc-select__no-results" role="presentation">{{ $noResultsLabel }}</li>
+            <li x-show="filtered.length > visible.length" class="lc-select__more-row" role="presentation">
+                Showing <span x-text="visible.length"></span> of <span x-text="filtered.length"></span> · refine your search to narrow further.
+            </li>
             <li x-show="searchError" x-cloak class="lc-select__error-row" role="alert" x-text="searchError"></li>
         </ul>
     </div>
@@ -273,6 +278,7 @@
                         triggerId: config.triggerId,
                         max: config.max,
                         chipsLimit: config.chipsLimit ?? 3,
+                        renderLimit: config.renderLimit ?? 50,
                         a11y: config.a11y || {},
                         values: Array.isArray(config.selected) ? [...config.selected] : [],
                         query: '',
@@ -286,7 +292,15 @@
                         _remote: null,
 
                         get filtered() {
-                            return window.lcRankItems(this.items, this.query);
+                            this._filter ??= window.lcMakeFilter();
+                            return this._filter(this.items, this.query);
+                        },
+
+                        get visible() {
+                            const all = this.filtered;
+                            return this.renderLimit > 0 && all.length > this.renderLimit
+                                ? all.slice(0, this.renderLimit)
+                                : all;
                         },
 
                         highlight(text, ranges) {
@@ -323,7 +337,7 @@
 
                         activeOptionId() {
                             if (!this.open) return null;
-                            const opt = this.filtered[this.cursor];
+                            const opt = this.visible[this.cursor];
                             return opt ? this.optionId(opt.key) : null;
                         },
 
@@ -333,7 +347,7 @@
 
                         openMenu(cursor) {
                             this.open = true;
-                            this.cursor = Math.max(0, Math.min(cursor, this.filtered.length - 1));
+                            this.cursor = Math.max(0, Math.min(cursor, this.visible.length - 1));
                             this.announceResults();
                             if (this.searchable) {
                                 this.$nextTick(() => this.$refs.search?.focus());
@@ -356,7 +370,7 @@
                         },
 
                         move(delta) {
-                            const max = this.filtered.length - 1;
+                            const max = this.visible.length - 1;
                             this.cursor = Math.max(0, Math.min(this.cursor + delta, max));
                             this.scrollActiveIntoView();
                         },
@@ -376,7 +390,7 @@
                         },
 
                         toggleAt(i) {
-                            const opt = this.filtered[i];
+                            const opt = this.visible[i];
                             if (!opt) return;
                             const idx = this.values.indexOf(opt.key);
                             if (idx >= 0) {
@@ -424,7 +438,7 @@
                         init() {
                             this.$watch('filtered', () => {
                                 if (this.open) this.announceResults();
-                                const max = this.filtered.length - 1;
+                                const max = this.visible.length - 1;
                                 if (this.cursor > max) this.cursor = Math.max(0, max);
                             });
 

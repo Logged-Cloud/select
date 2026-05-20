@@ -14,6 +14,7 @@
     'error' => null,
     'searchUrl' => null,
     'debounceMs' => null,
+    'renderLimit' => 50,
 ])
 @php
     $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -52,6 +53,7 @@
         'allowCustom' => (bool) $allowCustom,
         'searchUrl' => $searchUrl,
         'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
+        'renderLimit' => is_numeric($renderLimit) ? (int) $renderLimit : 50,
         'a11y' => [
             'options_available' => 'suggestions available',
             'added' => 'Added',
@@ -145,7 +147,10 @@
         <div class="lc-select__sheet-handle" aria-hidden="true"></div>
         <ul id="{{ $listboxId }}" role="listbox" class="lc-select__list">
             <li x-show="searchError" x-cloak class="lc-select__error-row" role="alert" x-text="searchError"></li>
-            <template x-for="(opt, i) in filtered" :key="opt.key">
+            <li x-show="filtered.length > visible.length" class="lc-select__more-row" role="presentation">
+                Showing <span x-text="visible.length"></span> of <span x-text="filtered.length"></span> · refine to narrow further.
+            </li>
+            <template x-for="(opt, i) in visible" :key="opt.key">
                 <li :id="optionId(opt.key)"
                     role="option"
                     :aria-selected="values.includes(opt.key) ? 'true' : 'false'"
@@ -197,6 +202,7 @@
                         allowCustom: config.allowCustom !== false,
                         listboxId: config.listboxId,
                         triggerId: config.triggerId,
+                        renderLimit: config.renderLimit ?? 50,
                         a11y: config.a11y || {},
                         searchUrl: config.searchUrl || null,
                         debounceMs: config.debounceMs,
@@ -247,12 +253,25 @@
                         },
 
                         get filtered() {
+                            // The dedup-against-values step means the "items"
+                            // input changes whenever a chip is added/removed,
+                            // so the memo key on identity catches it · the
+                            // pool array is fresh per call but lcMakeFilter
+                            // compares both pool ref and query.
+                            this._filter ??= window.lcMakeFilter();
                             const pool = this.items.filter((o) => !this.values.includes(o.key));
-                            const out = window.lcRankItems(pool, this.query);
+                            const out = this._filter(pool, this.query);
                             if (out.length > 0 && !out.find((o) => o.key === this.activeKey)) {
                                 this.activeKey = out[0].key;
                             }
                             return out;
+                        },
+
+                        get visible() {
+                            const all = this.filtered;
+                            return this.renderLimit > 0 && all.length > this.renderLimit
+                                ? all.slice(0, this.renderLimit)
+                                : all;
                         },
 
                         highlight(text, ranges) {
@@ -292,7 +311,10 @@
 
                         moveActive(delta) {
                             this.open = true;
-                            const list = this.filtered;
+                            // Arrow keys navigate within the visible window,
+                            // not the full filtered list · same UX guarantee
+                            // as the cursor-based variants.
+                            const list = this.visible;
                             if (list.length === 0) return;
                             const i = list.findIndex((o) => o.key === this.activeKey);
                             const next = (i + delta + list.length) % list.length;

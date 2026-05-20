@@ -20,6 +20,11 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v2.8 highlights
+
+- **Memoized filter pipeline.** `window.lcMakeFilter` caches the last `(items, query)` pair and short-circuits the ranking + highlight work when Alpine re-invokes the `filtered` getter without inputs having changed. Meaningful on large lists where the O(items × tokens) work was running per render tick.
+- **Listbox render cap.** All three search-bearing variants take a `:render-limit="50"` prop (default 50). Beyond the cap the menu shows "Showing 50 of N · refine your search to narrow further." instead of dumping hundreds of DOM nodes. Keyboard navigation + cursor stay scoped to the visible window so arrow-down doesn't leap into hidden rows.
+
 ### v2.7 highlights
 
 - **Inline error row** when a remote fetch fails (HTTP / network) · renders in the menu as `role="alert"` and the polite live region announces "Search failed. Try again." so the failure is impossible to miss whether you're sighted or using a screen reader.
