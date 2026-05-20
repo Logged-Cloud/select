@@ -97,7 +97,14 @@
 
                         pick(key) {
                             this.value = key;
-                            this.$refs.hidden?.dispatchEvent(new Event('change', { bubbles: true }));
+                            // Set the DOM input's value synchronously and only
+                            // then dispatch change · Alpine's :value binding
+                            // would update on the next tick, leaving listeners
+                            // that read $event.target.value with stale data.
+                            if (this.$refs.hidden) {
+                                this.$refs.hidden.value = key;
+                                this.$refs.hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
                             // Move focus to the freshly picked button so subsequent arrow
                             // keys feel natural · WAI radiogroup pattern.
                             this.$nextTick(() => {
