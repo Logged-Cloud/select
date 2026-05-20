@@ -1,18 +1,24 @@
 # logged-cloud/select
 
-A family of select widgets for Laravel apps. Each component name spells out which JS layer it uses and what it does, so you can pick the right one without reading the docs.
+A family of accessible select widgets for Laravel apps. Each component name spells out behaviour + driver so you can pick the right one without reading the docs.
 
 ## Variants
 
-| Component | Search | Multi | Driver | A11y pattern |
+| Component | Preview | Search | Multi | Pattern |
 | --- | --- | --- | --- | --- |
-| `<x-select::searchable-alpine>` | ✓ client-side | — | Alpine | WAI combobox + listbox popup |
-| `<x-select::multi-alpine>` | ✓ client-side | ✓ chips | Alpine | WAI combobox + multiselectable listbox |
-| `<x-select::radio-grid-alpine>` | — | — | Alpine | WAI radiogroup, roving tabindex |
+| [`searchable-alpine`](#x-selectsearchable-alpine) | <img src="docs/images/searchable-alpine.png" width="280" alt="searchable-alpine"> | ✓ client | — | dropdown · combobox + listbox |
+| [`multi-alpine`](#x-selectmulti-alpine) | <img src="docs/images/multi-alpine.png" width="280" alt="multi-alpine"> | ✓ client | ✓ chips | dropdown · combobox + multiselectable listbox |
+| [`radio-grid-alpine`](#x-selectradio-grid-alpine) | <img src="docs/images/radio-grid-alpine.png" width="280" alt="radio-grid-alpine"> | — | — | compact card grid · radiogroup |
+| [`radio-list-alpine`](#x-selectradio-list-alpine) | <img src="docs/images/radio-list-alpine.png" width="280" alt="radio-list-alpine"> | — | — | vertical list · radiogroup |
+| [`multi-grid-alpine`](#x-selectmulti-grid-alpine) | <img src="docs/images/multi-grid-alpine.png" width="280" alt="multi-grid-alpine"> | — | ✓ checks | compact card grid · toggle-button group |
+| [`multi-list-alpine`](#x-selectmulti-list-alpine) | <img src="docs/images/multi-list-alpine.png" width="280" alt="multi-list-alpine"> | — | ✓ checks | vertical list · toggle-button group |
+| [`inline-buttons-alpine`](#x-selectinline-buttons-alpine) | <img src="docs/images/inline-buttons-alpine.png" width="280" alt="inline-buttons-alpine"> | — | — | segmented pill row · radiogroup |
+| [`card-single-alpine`](#x-selectcard-single-alpine) | <img src="docs/images/card-single-alpine.png" width="280" alt="card-single-alpine"> | — | — | big visual cards · radiogroup |
+| [`card-multi-alpine`](#x-selectcard-multi-alpine) | <img src="docs/images/card-multi-alpine.png" width="280" alt="card-multi-alpine"> | — | ✓ | big visual cards · toggle-button group |
 
-The naming convention is **`<behaviour>-<driver>`**. Behaviour first (`searchable`, `multi`, `radio-grid`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search of huge lists, `native` for a no-JS fallback, `tags-alpine` for free-form tag entry, etc.) slot in alongside without forcing a new `composer require`.
+Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, `tags-alpine` for free-form entry, …) slot in alongside without forcing a new `composer require`.
 
-All three share the same theming, CSS class scope (`.lc-select__*`, `.lc-radio-grid__*`), reduced-motion / forced-colours handling and `{key, title, subtitle, svg}` item shape.
+All variants share the same `{key, title, subtitle, svg}` item shape, the same CSS custom-property theming, the same reduced-motion / forced-colours handling, and a built-in `<noscript>` fallback that swaps in a native `<select>` when JavaScript is disabled.
 
 Sister to [logged-cloud/navigation](https://github.com/Logged-Cloud/navigation).
 
@@ -22,8 +28,8 @@ Sister to [logged-cloud/navigation](https://github.com/Logged-Cloud/navigation).
 | --- | --- |
 | PHP | 8.2, 8.3, 8.4 |
 | Laravel | 11, 12, 13 (`illuminate/support`) |
-| Livewire | 3, 4 (provides the Alpine bundle the components rely on) |
-| Alpine.js | 3 (bundled with Livewire) |
+| Livewire | 3, 4 (provides the Alpine bundle) |
+| Alpine.js | 3 (bundled with Livewire, or load directly) |
 
 ## Install
 
@@ -31,15 +37,19 @@ Sister to [logged-cloud/navigation](https://github.com/Logged-Cloud/navigation).
 composer require logged-cloud/select
 ```
 
-`vendor:publish --tag=select-config` is optional; the components run on sensible defaults out of the box. `@source "../../vendor/logged-cloud/select/resources/views"` in your Tailwind config keeps the package classes during purging.
+`vendor:publish --tag=select-config` is optional; the components run on sensible defaults out of the box.
+
+If you use Tailwind v4, add the package to your `@source` directives so its classes survive purging:
+
+```css
+@source "../../vendor/logged-cloud/select/resources/views";
+```
 
 ## Item shape (every variant)
 
-Each item carries four fields:
-
 | Field | Type | Notes |
 | --- | --- | --- |
-| `key` | string | What lands in the hidden input · stable identifier the form posts. |
+| `key` | string | Stable identifier the form posts. |
 | `title` | string | Bold first line in the row / card. |
 | `subtitle` | string | Optional muted second line. |
 | `svg` | string | Single SVG `path d` string drawn at 24×24, `stroke=currentColor`. |
@@ -50,7 +60,9 @@ Items can be arrays or objects with the matching attribute names. **Order is res
 
 ## `<x-select::searchable-alpine>`
 
-Searchable single-select. Items shipped to the page; search runs client-side.
+![searchable-alpine](docs/images/searchable-alpine.png)
+
+Searchable single-select with a dropdown popup. Items shipped to the page; search runs client-side.
 
 ```blade
 <x-select::searchable-alpine
@@ -62,136 +74,207 @@ Searchable single-select. Items shipped to the page; search runs client-side.
 />
 ```
 
-| Attribute | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `name` | string | (required) | Form input name posted to the server. |
-| `id` | string | `$name` | Trigger element id. |
-| `items` | array\|Collection | `[]` | The option list (see shape above). |
-| `selected` | string\|null | `null` | Pre-selected `key`, or `null`. |
-| `allow-empty` | bool | `true` | Render the empty row in the menu. |
-| `placeholder` | string | "Select an option" | Trigger text when nothing is chosen. |
-| `empty-label` | string | "not set" | Label for the empty row in the menu. |
-| `search-label` | string | "Search..." | Placeholder for the search input. |
-| `no-results-label` | string | "No options match that." | Empty-search copy. |
-| `searchable` | bool | `true` | Show the search input above the list. |
-| `icon-size` | string | `1.75rem` | Tile size of each row's icon square. |
-| `label` | string\|null | `null` | Accessible name (`aria-label`). |
-| `labelled-by` | string\|null | `null` | Existing `<label>` id (`aria-labelledby`). |
-| `required` | bool | `false` | Sets `aria-required` + hidden input `required`. |
-| `disabled` | bool | `false` | Sets `aria-disabled` + disables the trigger. |
-
-**Keyboard**
-
-| Key | Closed | Open |
+| Attribute | Default | Purpose |
 | --- | --- | --- |
-| `Enter` / `Space` | Open at current selection | Pick the active option |
-| `↓` | Open + first option | Move down |
-| `↑` | Open + last option | Move up |
-| `Home` / `End` | — | Jump to first / last |
-| `PageDown` / `PageUp` | — | ±5 options |
-| `Esc` | — | Close & return focus to trigger |
-| `Tab` | — | Close & let focus flow |
-| Typing | — | Filters the list (when `searchable`) |
+| `name` | (required) | Form input name. |
+| `id` | `Str::camel($label)` or `$name` | Trigger element id. |
+| `items` | `[]` | The option list. |
+| `selected` | `null` | Pre-selected key. |
+| `allow-empty` | `true` | Render the empty row in the menu. |
+| `placeholder` | "Select an option" | Trigger text when nothing chosen. |
+| `empty-label` | "not set" | Empty row label. |
+| `search-label` | "Search..." | Search input placeholder. |
+| `no-results-label` | "No options match that." | Empty-search copy. |
+| `searchable` | `true` | Show the search input. |
+| `icon-size` | `1.75rem` | Row icon tile size. |
+| `label` / `labelled-by` | `null` | Accessible name. |
+| `required` | `false` | Sets `aria-required` + hidden input required. |
+| `disabled` | `false` | Sets `aria-disabled`. |
+
+**Keyboard** — ↑↓ Home/End PageUp/PageDown Esc Tab; Enter / Space picks; typing filters. Opening sends focus to search; picking returns it to the trigger.
 
 ---
 
 ## `<x-select::multi-alpine>`
 
-Searchable multi-select. Chips on the trigger, checkmarks in the menu, hidden inputs posted as `name[]` so `$request->validate(['prey_types' => 'array'])` works directly.
+![multi-alpine](docs/images/multi-alpine.png)
+
+Searchable multi-select with chips on the trigger, checkmarks in the menu, hidden inputs posted as `name[]`.
 
 ```blade
 <x-select::multi-alpine
     name="prey_types"
     :items="$preyTypes"
-    :selected="old('prey_types', $snake->prey_types ?? [])"
+    :selected="['mouse', 'rat']"
     label="Acceptable prey"
     :max="5"
 />
 ```
 
-| Attribute | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `name` | string | (required) | Posted as `name[]` to the server. |
-| `id` | string | `$name` | Trigger element id. |
-| `items` | array\|Collection | `[]` | The option list. |
-| `selected` | array\|Collection | `[]` | Pre-selected keys (preserves order). |
-| `placeholder` | string | "Select options" | Trigger text when nothing is chosen. |
-| `search-label` | string | "Search..." | Placeholder for the search input. |
-| `no-results-label` | string | "No options match that." | Empty-search copy. |
-| `searchable` | bool | `true` | Show the search input. |
-| `icon-size` | string | `1.75rem` | Tile size of each row's icon square. |
-| `label` | string\|null | `null` | Accessible name. |
-| `labelled-by` | string\|null | `null` | Existing `<label>` id. |
-| `required` | bool | `false` | Sets `aria-required`. |
-| `disabled` | bool | `false` | Sets `aria-disabled` + disables the trigger. |
-| `max` | int\|null | `null` | Cap selections; extras are refused with an SR-announced "Maximum reached" message. |
-| `chips-limit` | int | `3` | Above this count the trigger collapses to "N selected" instead of stacking chips. |
+| Extra attribute | Default | Purpose |
+| --- | --- | --- |
+| `max` | `null` | Cap selections; extras refused with SR-announced "Maximum reached". |
+| `chips-limit` | `3` | Above this count the trigger collapses to "N selected". |
 
-**Behaviour differences from `searchable-alpine`**
-
-- `aria-multiselectable="true"` on both the trigger combobox and the listbox.
-- `Enter` / `Space` *toggles* the active option and **keeps the menu open** — multi-select is iterative.
-- A checkmark cell + chips replace the single-row selected-icon UI.
-- Each chip carries its own remove (×) button with `aria-label="Remove <title>"`.
-- The live region announces `Added <title>` / `Removed <title>` per toggle.
+`aria-multiselectable="true"` on both the trigger and the listbox. Enter / Space toggles without closing the menu. Each chip has a per-chip × button.
 
 ---
 
 ## `<x-select::radio-grid-alpine>`
 
-A card-grid radiogroup for single-pick choices where you want every option visible at once (event-type pickers, status switchers, etc.). No dropdown.
+![radio-grid-alpine](docs/images/radio-grid-alpine.png)
+
+Compact card grid for single-pick where every option should be visible at once (event types, status switchers).
 
 ```blade
 <x-select::radio-grid-alpine
     name="event_type"
     :items="$eventTypes"
-    :selected="old('event_type', 'feeding')"
+    selected="feeding"
     label="Event type"
-    min-width="7rem"
+    min-width="6.5rem"
 />
 ```
 
-| Attribute | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `name` | string | (required) | Form input name posted to the server. |
-| `id` | string | `$name` | Container id. |
-| `items` | array\|Collection | `[]` | Cards rendered in order. |
-| `selected` | string\|null | `null` | Pre-selected `key`. |
-| `icon-size` | string | `1.5rem` | Icon size inside each card. |
-| `min-width` | string | `6.5rem` | Min cell width passed to the CSS grid (`auto-fill, minmax(...)`). |
-| `label` | string\|null | `null` | Accessible name (`aria-label` on the radiogroup). |
-| `labelled-by` | string\|null | `null` | Existing `<label>` id. |
-| `required` | bool | `false` | Sets `aria-required` + hidden input `required`. |
-| `disabled` | bool | `false` | Each card carries `aria-disabled`. |
-
-**Keyboard** — implements the WAI radiogroup *roving tabindex* pattern.
-
-| Key | Effect |
-| --- | --- |
-| `Tab` | Enter / exit the group (focus lands on the chosen card, or the first one if none chosen). |
-| `←` / `→` / `↑` / `↓` | Move to the previous / next card (and select it). |
-| `Home` / `End` | Jump to first / last card. |
-| `Space` / `Enter` | Pick the focused card. |
-
-The currently-chosen card has `tabindex="0"`; every other card has `tabindex="-1"`. `aria-checked` flips with the selection.
+WAI radio-group roving tabindex. Arrow keys move the selection; Home/End jump to ends; Space/Enter pick the focused card.
 
 ---
 
-## Accessibility (shared across variants)
+## `<x-select::radio-list-alpine>`
+
+![radio-list-alpine](docs/images/radio-list-alpine.png)
+
+Vertical list of radio rows with classic dot indicators. Better than the grid for longer choice lists where reading order matters.
+
+```blade
+<x-select::radio-list-alpine
+    name="event_type"
+    :items="$eventTypes"
+    selected="weight"
+    label="Event type"
+/>
+```
+
+Same WAI radiogroup pattern as the grid; ↑↓ move within the list, Home/End jump.
+
+---
+
+## `<x-select::multi-grid-alpine>`
+
+![multi-grid-alpine](docs/images/multi-grid-alpine.png)
+
+Compact card grid for **multi-select**. Toggle-button semantics (`aria-pressed`), checkmark on each chosen card. Posts as `name[]`.
+
+```blade
+<x-select::multi-grid-alpine
+    name="event_types"
+    :items="$eventTypes"
+    :selected="['feeding', 'shed']"
+    label="Event types"
+    :max="3"
+/>
+```
+
+---
+
+## `<x-select::multi-list-alpine>`
+
+![multi-list-alpine](docs/images/multi-list-alpine.png)
+
+Vertical list version of the above. Each row carries its own checkbox cell + icon + title + subtitle.
+
+```blade
+<x-select::multi-list-alpine
+    name="event_types"
+    :items="$eventTypes"
+    :selected="['feeding', 'weight']"
+    label="Event types"
+/>
+```
+
+---
+
+## `<x-select::inline-buttons-alpine>`
+
+![inline-buttons-alpine](docs/images/inline-buttons-alpine.png)
+
+Segmented control / pill row for compact single-pick toolbars. Horizontal layout; the active button gets a raised look.
+
+```blade
+<x-select::inline-buttons-alpine
+    name="event_type"
+    :items="$eventTypes"
+    selected="handled"
+    label="Event type"
+/>
+```
+
+WAI radiogroup with ←/→ navigation.
+
+---
+
+## `<x-select::card-single-alpine>`
+
+![card-single-alpine](docs/images/card-single-alpine.png)
+
+Big visual cards for single-pick choices where each option deserves room for a description and a prominent icon. Useful for plan pickers, mode switchers, onboarding choices.
+
+```blade
+<x-select::card-single-alpine
+    name="event_type"
+    :items="$cards"
+    selected="feeding"
+    label="Event type"
+    min-width="14rem"
+    icon-size="2.5rem"
+/>
+```
+
+Roving tabindex with four-direction arrow navigation (←↑→↓); Home / End jump to ends.
+
+---
+
+## `<x-select::card-multi-alpine>`
+
+![card-multi-alpine](docs/images/card-multi-alpine.png)
+
+Multi-select version of the cards. Toggle-button semantics, checkmark badge on each chosen card. Posts as `name[]`.
+
+```blade
+<x-select::card-multi-alpine
+    name="event_types"
+    :items="$cards"
+    :selected="['feeding', 'shed']"
+    label="Event types"
+    :max="3"
+/>
+```
+
+---
+
+## Accessibility (shared)
 
 - Every variant uses CSS custom properties + system colours so it survives **`forced-colors`** mode (Windows High Contrast → `CanvasText` / `Highlight` / `HighlightText`).
-- All transitions are dropped under **`prefers-reduced-motion: reduce`**.
-- Focus rings are 2px outline + 2px offset on the host theme's accent, meeting WCAG 2.4.7 non-text contrast.
-- The `searchable-alpine` and `multi-alpine` variants both ship a polite `aria-live` region announcing the filtered result count and selection events.
+- All transitions drop under **`prefers-reduced-motion: reduce`**.
+- Focus rings are 2px outline + 2px offset on the host theme's accent colour, meeting WCAG 2.4.7 non-text contrast.
+- Single-pick variants implement the WAI **roving tabindex** radio-group pattern; multi-pick variants use **toggle-button** (`aria-pressed`) semantics.
 
-Behavioural testing is left to the consumer app's browser test suite (snake.logged.cloud uses Laravel Dusk via the navigation package's sandbox pattern). The package itself ships 25 structural Pest tests / 117 assertions covering the ARIA wiring, keyboard handler set, focus-return helpers and CSS hooks for every variant.
+## Progressive enhancement · JavaScript-off fallback
+
+Every variant ships a hidden native `<select>` (or `<select multiple>`) inside a `<noscript>`-gated CSS block. With JS disabled the native control is shown and submitted; a small red **JS off** pill appears next to the label so the user understands they're on the basic experience. With JS enabled, `x-init` clears the native's `name` attribute so only the Alpine widget's value posts.
+
+## Label-derived ids
+
+When no explicit `id` is passed, the trigger / group id derives from `label` as camelCase: `label="Prey type"` → `id="preyType"`. Falls back to the field name if no label is set, so existing usages keep working.
 
 ## Theming
 
-Every colour is a CSS custom property. Override any of these in your app's CSS to retheme:
+Every colour is a CSS custom property. Defaults fall back to the **fish.logged.cloud** palette (`#C7593A` accent / `#25272A` bg / `#F0EDE5` ink) so an app that sets nothing still looks like a logged.cloud family app. Override any of these in your app's CSS:
 
 ```css
-.lc-select, .lc-radio-grid {
+.lc-select, .lc-radio-list, .lc-radio-grid,
+.lc-multi-grid, .lc-multi-list,
+.lc-inline-buttons, .lc-cards {
     --lc-bg:        #1f2937;
     --lc-menu-bg:   #1f2937;
     --lc-border:    #374151;
@@ -204,16 +287,24 @@ Every colour is a CSS custom property. Override any of these in your app's CSS t
 }
 ```
 
-By default each variable falls back to your host app's `--surface`, `--accent` etc — match those and the components pick up your theme without extra config.
+By default each variable also falls back to a host `--surface`, `--accent` etc., so matching those alone is enough to retheme without touching this stylesheet.
 
-## Tailwind
+## Regenerating the screenshots
 
-If your app uses Tailwind v4, add the package to your `@source` directives so its classes survive purging:
+The images above are real renders captured by `bin/screenshots.sh`, which drives snake-logged's Dusk harness from the host:
 
-```css
-@source "../../vendor/logged-cloud/select/resources/views";
+```bash
+cd /var/www/logged-cloud-select
+bin/screenshots.sh          # full run · dusk capture + copy
+bin/screenshots.sh --skip   # reuse existing dusk output, just copy
 ```
+
+The script syncs the local package's `resources/` and `config/` into snake-logged's vendor (handy for unpushed changes), clears the Blade view cache, runs `php artisan dusk --filter=SelectVariantScreenshotsTest`, then copies the resulting PNGs into `docs/images/`.
+
+## Tests
+
+`vendor/bin/pest` runs **42 structural tests / 211 assertions** covering ARIA wiring, keyboard handler sets, the hidden-input conventions, focus-return helpers, the `<noscript>` fallback, label-derived ids, the default fish-orange palette, the 2px card border, and CSS hooks for every variant. Behavioural coverage lives in the consumer app's browser-test suite.
 
 ## Livewire
 
-The components live inside any page that loads `@livewireScripts`, which is where Alpine comes from. Each variant registers its Alpine data factory once globally via an `@once`-guarded `<script>` in the component template — multiple instances on a page share one bundle.
+The components live inside any page that loads `@livewireScripts`, which is where Alpine comes from. Each variant registers its Alpine data factory once globally via an `@once`-guarded `<script>` in its template — multiple instances on a page share one bundle.
