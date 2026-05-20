@@ -88,6 +88,19 @@
     outline-offset: 1px;
 }
 
+/* Render-cap footer · shown when filtered.length exceeds renderLimit so
+   the user knows further results exist and can refine to access them. */
+.lc-select__more-row {
+    list-style: none;
+    padding: .5rem .85rem;
+    margin: 0;
+    color: var(--lc-ink-dim);
+    background: color-mix(in srgb, var(--lc-ink) 4%, transparent);
+    font-size: .8rem;
+    font-style: italic;
+    text-align: center;
+}
+
 /* In-menu error row · surfaces when the remote search hook reports an
    HTTP / network failure. Sits alongside the no-results row in the
    listbox so the user notices it where they're already looking. */

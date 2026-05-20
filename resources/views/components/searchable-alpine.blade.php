@@ -17,6 +17,7 @@
     'error' => null,
     'searchUrl' => null,
     'debounceMs' => null,
+    'renderLimit' => 50,
 ])
 @php
     // ID derives from label when present (camelCased) so the markup gets
@@ -67,6 +68,7 @@
         'triggerId' => $triggerId,
         'searchUrl' => $searchUrl,
         'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
+        'renderLimit' => is_numeric($renderLimit) ? (int) $renderLimit : 50,
         'a11y' => [
             'options_available' => 'options available',
             'no_options' => 'No options.',
@@ -120,9 +122,9 @@
             @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
             @click="toggle()"
             @keydown.arrow-down.prevent="open ? move(1) : openMenu(0)"
-            @keydown.arrow-up.prevent="open ? move(-1) : openMenu(filtered.length - 1)"
+            @keydown.arrow-up.prevent="open ? move(-1) : openMenu(visible.length - 1)"
             @keydown.home.prevent="if (open) { cursor = 0; }"
-            @keydown.end.prevent="if (open) { cursor = filtered.length - 1; }"
+            @keydown.end.prevent="if (open) { cursor = visible.length - 1; }"
             @keydown.enter.prevent="open ? pickAt(cursor) : openMenu(currentIndex())"
             @keydown.space.prevent="open ? pickAt(cursor) : openMenu(currentIndex())"
             @keydown.tab="if (open) { close(); }">
@@ -189,8 +191,8 @@
                        @keydown.arrow-down.prevent="move(1)"
                        @keydown.arrow-up.prevent="move(-1)"
                        @keydown.home.prevent="cursor = 0"
-                       @keydown.end.prevent="cursor = filtered.length - 1"
-                       @keydown.page-down.prevent="cursor = Math.min(cursor + 5, filtered.length - 1)"
+                       @keydown.end.prevent="cursor = visible.length - 1"
+                       @keydown.page-down.prevent="cursor = Math.min(cursor + 5, visible.length - 1)"
                        @keydown.page-up.prevent="cursor = Math.max(cursor - 5, 0)"
                        @keydown.enter.prevent="pickAt(cursor)"
                        @keydown.tab="close()">
@@ -217,7 +219,7 @@
                     <span class="lc-select__placeholder">{{ $emptyLabel }}</span>
                 </li>
             @endif
-            <template x-for="(opt, i) in filtered" :key="opt.key">
+            <template x-for="(opt, i) in visible" :key="opt.key">
                 <li role="option"
                     :id="optionId(opt.key)"
                     :aria-selected="selected?.key === opt.key ? 'true' : 'false'"
@@ -239,6 +241,9 @@
                 </li>
             </template>
             <li x-show="filtered.length === 0 && !searchError" class="lc-select__no-results" role="presentation">{{ $noResultsLabel }}</li>
+            <li x-show="filtered.length > visible.length" class="lc-select__more-row" role="presentation">
+                Showing <span x-text="visible.length"></span> of <span x-text="filtered.length"></span> · refine your search to narrow further.
+            </li>
             <li x-show="searchError" x-cloak class="lc-select__error-row" role="alert" x-text="searchError"></li>
         </ul>
     </div>
@@ -272,6 +277,7 @@
                         listboxId: config.listboxId,
                         searchId: config.searchId,
                         triggerId: config.triggerId,
+                        renderLimit: config.renderLimit ?? 50,
                         a11y: config.a11y || {},
                         value: config.selected || '',
                         selected: null,
@@ -286,7 +292,15 @@
                         _remote: null,
 
                         get filtered() {
-                            return window.lcRankItems(this.items, this.query);
+                            this._filter ??= window.lcMakeFilter();
+                            return this._filter(this.items, this.query);
+                        },
+
+                        get visible() {
+                            const all = this.filtered;
+                            return this.renderLimit > 0 && all.length > this.renderLimit
+                                ? all.slice(0, this.renderLimit)
+                                : all;
                         },
 
                         highlight(text, ranges) {
@@ -304,14 +318,14 @@
                         },
 
                         currentIndex() {
-                            const i = this.filtered.findIndex((o) => o.key === this.value);
+                            const i = this.visible.findIndex((o) => o.key === this.value);
                             return i >= 0 ? i : 0;
                         },
 
                         activeOptionId() {
                             if (!this.open) return null;
                             if (this.cursor === -1 && this.allowEmpty) return this.optionId('__empty');
-                            const opt = this.filtered[this.cursor];
+                            const opt = this.visible[this.cursor];
                             return opt ? this.optionId(opt.key) : null;
                         },
 
@@ -321,7 +335,7 @@
 
                         openMenu(cursor) {
                             this.open = true;
-                            this.cursor = Math.max(this.allowEmpty ? -1 : 0, Math.min(cursor, this.filtered.length - 1));
+                            this.cursor = Math.max(this.allowEmpty ? -1 : 0, Math.min(cursor, this.visible.length - 1));
                             this.announceResults();
                             if (this.searchable) {
                                 this.$nextTick(() => this.$refs.search?.focus());
@@ -348,9 +362,26 @@
 
                         move(delta) {
                             const min = this.allowEmpty ? -1 : 0;
-                            const max = this.filtered.length - 1;
+                            const max = this.visible.length - 1;
                             this.cursor = Math.max(min, Math.min(this.cursor + delta, max));
                             this.scrollActiveIntoView();
+                        },
+
+                        pickAt(i) {
+                            // pickAt is called by enter / click handlers with
+                            // an index into `visible`; the original `filtered`-
+                            // indexed callers still resolve correctly because
+                            // visible[i] === filtered[i] for i < renderLimit.
+                            const opt = this.visible[i];
+                            if (!opt) return;
+                            this.value = opt.key;
+                            this.selected = opt;
+                            this.announceSelection(opt);
+                            this.open = false;
+                            this.query = '';
+                            this.cursor = 0;
+                            this.$refs.hidden?.dispatchEvent(new Event('change', { bubbles: true }));
+                            this.focusTrigger();
                         },
 
                         scrollActiveIntoView() {
@@ -374,19 +405,6 @@
                             this.liveMessage = label.trim();
                         },
 
-                        pickAt(i) {
-                            const opt = this.filtered[i];
-                            if (!opt) return;
-                            this.value = opt.key;
-                            this.selected = opt;
-                            this.announceSelection(opt);
-                            this.open = false;
-                            this.query = '';
-                            this.cursor = 0;
-                            this.$refs.hidden?.dispatchEvent(new Event('change', { bubbles: true }));
-                            this.focusTrigger();
-                        },
-
                         clear() {
                             this.value = '';
                             this.selected = null;
@@ -402,7 +420,7 @@
                             this.$watch('filtered', () => {
                                 if (this.open) this.announceResults();
                                 // Keep the cursor inside the new bounds when filtering.
-                                const max = this.filtered.length - 1;
+                                const max = this.visible.length - 1;
                                 if (this.cursor > max) this.cursor = max;
                                 const min = this.allowEmpty ? -1 : 0;
                                 if (this.cursor < min) this.cursor = min;

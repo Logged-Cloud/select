@@ -8,6 +8,29 @@
         if (window.__lcSearchHelpers) return;
         window.__lcSearchHelpers = true;
 
+        // Memoize a filter run · returns a stable closure that short-circuits
+        // when called with the same (items, query) pair as last time. The
+        // ranking + highlight pipeline is O(items × tokens) with allocation
+        // per item, so Alpine's per-render getter re-evaluation makes this
+        // memo a meaningful win on large lists.
+        //
+        // Usage from a variant's `get filtered()`:
+        //   get filtered() { return (this._memo ??= window.lcMakeFilter())(this.items, this.query); }
+        window.lcMakeFilter = function () {
+            let lastItems = null;
+            let lastQuery = null;
+            let lastResult = null;
+            return function (items, query) {
+                if (items === lastItems && query === lastQuery && lastResult) {
+                    return lastResult;
+                }
+                lastItems = items;
+                lastQuery = query;
+                lastResult = window.lcRankItems(items, query);
+                return lastResult;
+            };
+        };
+
         // Score an items array against a multi-token query. Tokens are AND-ed
         // (every token must hit somewhere); ties broken by where the match
         // lands · prefix-on-title beats mid-word beats subtitle. Returns
