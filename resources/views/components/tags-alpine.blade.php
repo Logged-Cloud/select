@@ -15,6 +15,8 @@
     'searchUrl' => null,
     'debounceMs' => null,
     'renderLimit' => 50,
+    'dependsOn' => null,
+    'dependsMessage' => null,
 ])
 @php
     $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -39,10 +41,12 @@
             'title' => (string) $get('title'),
             'subtitle' => (string) ($get('subtitle') ?? ''),
             'svg' => (string) ($get('svg') ?? ''),
+            'parent' => $get('parent') !== null ? (string) $get('parent') : null,
         ];
     })->values()->all();
 
     $selectedTags = collect($selected)->map(fn ($v) => (string) $v)->values()->all();
+    $dependsMessage = $dependsMessage ?? ($dependsOn ? "Select {$dependsOn} first" : null);
 
     $config = [
         'items' => $normalised,
@@ -54,6 +58,9 @@
         'searchUrl' => $searchUrl,
         'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
         'renderLimit' => is_numeric($renderLimit) ? (int) $renderLimit : 50,
+        'dependsOn' => $dependsOn,
+        'dependsMessage' => $dependsMessage,
+        'placeholder' => $placeholder,
         'a11y' => [
             'options_available' => 'suggestions available',
             'added' => 'Added',
@@ -123,8 +130,10 @@
                :aria-expanded="open"
                :aria-activedescendant="open && activeKey ? optionId(activeKey) : null"
                :aria-busy="loading"
+               :aria-disabled="isLocked ? 'true' : null"
+               :disabled="isLocked"
                aria-label="{{ $label ?: $placeholder }}"
-               placeholder="{{ $placeholder }}"
+               :placeholder="effectivePlaceholder"
                @if ($required) aria-required="true" @endif
                @if ($disabled) aria-disabled="true" disabled @endif
                @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
@@ -203,6 +212,10 @@
                         listboxId: config.listboxId,
                         triggerId: config.triggerId,
                         renderLimit: config.renderLimit ?? 50,
+                        dependsOn: config.dependsOn || null,
+                        dependsMessage: config.dependsMessage || '',
+                        placeholder: config.placeholder || '',
+                        parentValue: '',
                         a11y: config.a11y || {},
                         searchUrl: config.searchUrl || null,
                         debounceMs: config.debounceMs,
@@ -216,6 +229,15 @@
                         liveMessage: '',
 
                         init() {
+                            if (this.dependsOn) {
+                                this._readParent();
+                                this._parentListener = (e) => {
+                                    if (!e.target || e.target.name !== this.dependsOn) return;
+                                    queueMicrotask(() => this._readParent());
+                                };
+                                document.addEventListener('change', this._parentListener);
+                            }
+
                             this._announce = window.lcMakeAnnouncer((m) => { this.liveMessage = m; });
                             this.$watch('filtered', () => {
                                 if (!this.open) return;
@@ -227,7 +249,14 @@
 
                             if (!this.searchUrl) return;
                             this._remote = window.lcMakeRemoteSearch({
-                                url: () => this.searchUrl,
+                                url: () => {
+                                    if (this.isLocked) return '';
+                                    let u = this.searchUrl;
+                                    if (this.dependsOn && this.parentValue) {
+                                        u += (u.indexOf('?') >= 0 ? '&' : '?') + 'parent=' + encodeURIComponent(this.parentValue);
+                                    }
+                                    return u;
+                                },
                                 debounceMs: () => this.debounceMs ?? 250,
                                 onLoading: (v) => { this.loading = v; if (v) { this.searchError = ''; this.liveMessage = this.a11y.loading || 'Searching…'; } },
                                 onResult: (items) => {
@@ -250,19 +279,41 @@
                             this.$watch('query', (q) => this._remote.queue(q));
                         },
 
+                        get isLocked() {
+                            return this.dependsOn && !this.parentValue;
+                        },
+
+                        get effectivePlaceholder() {
+                            return this.isLocked ? (this.dependsMessage || this.placeholder) : this.placeholder;
+                        },
+
                         get filtered() {
-                            // The dedup-against-values step means the "items"
-                            // input changes whenever a chip is added/removed,
-                            // so the memo key on identity catches it · the
-                            // pool array is fresh per call but lcMakeFilter
-                            // compares both pool ref and query.
+                            if (this.isLocked) return [];
                             this._filter ??= window.lcMakeFilter();
-                            const pool = this.items.filter((o) => !this.values.includes(o.key));
+                            // Compose: not-already-selected + parent-scoped + ranked.
+                            let pool = this.items.filter((o) => !this.values.includes(o.key));
+                            if (this.dependsOn && this.parentValue) {
+                                pool = pool.filter((o) => o.parent == null || o.parent === this.parentValue);
+                            }
                             const out = this._filter(pool, this.query);
                             if (out.length > 0 && !out.find((o) => o.key === this.activeKey)) {
                                 this.activeKey = out[0].key;
                             }
                             return out;
+                        },
+
+                        _readParent() {
+                            const el = document.querySelector('[name="' + this.dependsOn + '"]');
+                            const next = el ? String(el.value || '') : '';
+                            if (next === this.parentValue) return;
+                            this.parentValue = next;
+                            if (this.values.length > 0) {
+                                this.values = [];
+                                this.$nextTick(() => {
+                                    this.$el.querySelectorAll('input[type=hidden]').forEach((el) =>
+                                        el.dispatchEvent(new Event('change', { bubbles: true })));
+                                });
+                            }
                         },
 
                         get visible() {

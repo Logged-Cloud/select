@@ -9,6 +9,7 @@
     'disabled' => false,
     'minWidth' => '12rem',
     'iconSize' => '2.5rem',
+    'pageSize' => 0,
 ])
 @php
     $groupId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -34,6 +35,7 @@
         'items' => $normalised,
         'selected' => $selected,
         'groupId' => $groupId,
+        'pageSize' => is_numeric($pageSize) ? (int) $pageSize : 0,
     ];
 @endphp
 <div x-data="loggedCloudCardSingle({{ \Illuminate\Support\Js::from($config) }})"
@@ -55,7 +57,7 @@
     <input type="hidden" name="{{ $name }}" :value="value" x-ref="hidden"
            @if ($required) required @endif>
 
-    <template x-for="(opt, i) in items" :key="opt.key">
+    <template x-for="(opt, i) in visible" :key="opt.key">
         <button type="button"
                 :id="optionId(opt.key)"
                 role="radio"
@@ -70,7 +72,7 @@
                 @keydown.arrow-left.prevent="moveBy(-1, $el)"
                 @keydown.arrow-up.prevent="moveBy(-1, $el)"
                 @keydown.home.prevent="focusIndex(0)"
-                @keydown.end.prevent="focusIndex(items.length - 1)"
+                @keydown.end.prevent="focusIndex(visible.length - 1)"
                 @keydown.space.prevent="pick(opt.key)"
                 @keydown.enter.prevent="pick(opt.key)">
             <span class="lc-cards__check" aria-hidden="true" x-show="value === opt.key">
@@ -92,8 +94,22 @@
         </button>
     </template>
 
+    {{-- Pagination controls · only render when page-size is set and there is
+         more than one page. Lives outside the radiogroup so it doesn't show
+         up to assistive tech as a fake card. --}}
+    <nav x-show="pageSize > 0 && pageCount > 1" x-cloak class="lc-cards__pager" aria-label="Pagination">
+        <button type="button" class="lc-cards__page-btn" :disabled="page === 0" @click="prevPage()" aria-label="Previous page">‹ Prev</button>
+        <span class="lc-cards__page-status" aria-live="polite">
+            Page <span x-text="page + 1"></span> of <span x-text="pageCount"></span>
+        </span>
+        <button type="button" class="lc-cards__page-btn" :disabled="page >= pageCount - 1" @click="nextPage()" aria-label="Next page">Next ›</button>
+    </nav>
+
     @once
         @include('select::styles')
+    @endonce
+    @once
+        @include('select::partials.search-helpers')
     @endonce
     @once
         <script data-lc-card-single-alpine>
@@ -106,10 +122,22 @@
                         items: config.items || [],
                         groupId: config.groupId,
                         value: config.selected || '',
+                        pageSize: config.pageSize || 0,
+                        page: 0,
+
+                        get pageCount() {
+                            if (this.pageSize <= 0) return 1;
+                            return Math.max(1, Math.ceil(this.items.length / this.pageSize));
+                        },
+
+                        get visible() {
+                            if (this.pageSize <= 0) return this.items;
+                            const start = this.page * this.pageSize;
+                            return this.items.slice(start, start + this.pageSize);
+                        },
 
                         optionId(key) {
-                            const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
-                            return this.groupId + '__opt-' + safe;
+                            return this.groupId + '__opt-' + window.lcSafeId(key);
                         },
 
                         pick(key) {
@@ -124,17 +152,35 @@
                         },
 
                         focusIndex(i) {
-                            const opt = this.items[i];
-                            if (!opt) return;
-                            this.pick(opt.key);
+                            // Index is into the VISIBLE slice · arrow-right past
+                            // the end of the page advances to the next page and
+                            // focuses its first card; same in reverse.
+                            if (i < 0) {
+                                if (this.page > 0) {
+                                    this.page--;
+                                    this.$nextTick(() => this.pick(this.visible[this.visible.length - 1].key));
+                                }
+                                return;
+                            }
+                            if (i >= this.visible.length) {
+                                if (this.page < this.pageCount - 1) {
+                                    this.page++;
+                                    this.$nextTick(() => this.pick(this.visible[0].key));
+                                }
+                                return;
+                            }
+                            const opt = this.visible[i];
+                            if (opt) this.pick(opt.key);
                         },
 
                         moveBy(delta, fromEl) {
-                            const i = this.items.findIndex((o) => this.optionId(o.key) === fromEl?.id);
+                            const i = this.visible.findIndex((o) => this.optionId(o.key) === fromEl?.id);
                             if (i < 0) return this.focusIndex(0);
-                            const next = (i + delta + this.items.length) % this.items.length;
-                            this.focusIndex(next);
+                            this.focusIndex(i + delta);
                         },
+
+                        prevPage() { if (this.page > 0) this.page--; },
+                        nextPage() { if (this.page < this.pageCount - 1) this.page++; },
                     }));
                 });
             })();

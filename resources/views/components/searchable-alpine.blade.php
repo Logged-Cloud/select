@@ -18,6 +18,8 @@
     'searchUrl' => null,
     'debounceMs' => null,
     'renderLimit' => 50,
+    'dependsOn' => null,
+    'dependsMessage' => null,
 ])
 @php
     // ID derives from label when present (camelCased) so the markup gets
@@ -53,8 +55,13 @@
             'title' => (string) $get('title'),
             'subtitle' => (string) ($get('subtitle') ?? ''),
             'svg' => (string) ($get('svg') ?? ''),
+            // Optional `parent` key for depends-on filtering · null when
+            // the field isn't used so client-side scoping is a no-op.
+            'parent' => $get('parent') !== null ? (string) $get('parent') : null,
         ];
     })->values()->all();
+
+    $dependsMessage = $dependsMessage ?? ($dependsOn ? "Select {$dependsOn} first" : null);
 
     $config = [
         'items' => $normalised,
@@ -69,6 +76,9 @@
         'searchUrl' => $searchUrl,
         'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
         'renderLimit' => is_numeric($renderLimit) ? (int) $renderLimit : 50,
+        'dependsOn' => $dependsOn,
+        'dependsMessage' => $dependsMessage,
+        'placeholder' => $placeholder,
         'a11y' => [
             'options_available' => 'options available',
             'no_options' => 'No options.',
@@ -120,7 +130,8 @@
             @if ($required) aria-required="true" @endif
             @if ($disabled) aria-disabled="true" @endif
             @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
-            @click="toggle()"
+            :aria-disabled="isLocked ? 'true' : null"
+            @click="if (isLocked) return; toggle()"
             @keydown.arrow-down.prevent="open ? move(1) : openMenu(0)"
             @keydown.arrow-up.prevent="open ? move(-1) : openMenu(visible.length - 1)"
             @keydown.home.prevent="if (open) { cursor = 0; }"
@@ -138,7 +149,7 @@
                     </svg>
                 </span>
             </template>
-            <span x-text="selected ? selected.title : @js($placeholder)"
+            <span x-text="selected ? selected.title : effectivePlaceholder"
                   :class="selected ? 'lc-select__placeholder--filled' : 'lc-select__placeholder'"></span>
         </span>
         <span class="lc-select__trigger-tail">
@@ -278,6 +289,10 @@
                         searchId: config.searchId,
                         triggerId: config.triggerId,
                         renderLimit: config.renderLimit ?? 50,
+                        dependsOn: config.dependsOn || null,
+                        dependsMessage: config.dependsMessage || '',
+                        placeholder: config.placeholder || '',
+                        parentValue: '',
                         a11y: config.a11y || {},
                         value: config.selected || '',
                         selected: null,
@@ -291,9 +306,57 @@
                         searchError: '',
                         _remote: null,
 
+                        get isLocked() {
+                            return this.dependsOn && !this.parentValue;
+                        },
+
+                        get effectivePlaceholder() {
+                            return this.isLocked ? (this.dependsMessage || this.placeholder) : this.placeholder;
+                        },
+
                         get filtered() {
+                            // Locked (depends-on set but parent unfilled) ·
+                            // surface zero options + the menu won't open. The
+                            // trigger placeholder swaps to dependsMessage.
+                            if (this.isLocked) return [];
                             this._filter ??= window.lcMakeFilter();
-                            return this._filter(this.items, this.query);
+                            // Scope items to those matching the parent · items
+                            // without a `parent` field pass through unfiltered
+                            // (useful when the dependency is just an enable-gate).
+                            const pool = this._parentScoped();
+                            return this._filter(pool, this.query);
+                        },
+
+                        _parentScoped() {
+                            if (!this.dependsOn || !this.parentValue) return this.items;
+                            if (this._lastScopedParent === this.parentValue
+                                && this._lastScopedItems === this.items
+                                && this._lastScoped) {
+                                return this._lastScoped;
+                            }
+                            this._lastScopedParent = this.parentValue;
+                            this._lastScopedItems = this.items;
+                            this._lastScoped = this.items.filter(
+                                (o) => o.parent == null || o.parent === this.parentValue
+                            );
+                            return this._lastScoped;
+                        },
+
+                        _readParent() {
+                            const el = document.querySelector('[name="' + this.dependsOn + '"]');
+                            const next = el ? String(el.value || '') : '';
+                            if (next === this.parentValue) return;
+                            this.parentValue = next;
+                            // Clear our own selection when the parent changes ·
+                            // the previously-selected child may not exist under
+                            // the new parent.
+                            if (this.value) {
+                                this.value = '';
+                                this.selected = null;
+                                if (this.$refs.hidden) {
+                                    this.$refs.hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            }
                         },
 
                         get visible() {
@@ -436,9 +499,32 @@
                                 if (this.cursor < min) this.cursor = min;
                             });
 
+                            if (this.dependsOn) {
+                                this._readParent();
+                                this._parentListener = (e) => {
+                                    if (!e.target || e.target.name !== this.dependsOn) return;
+                                    // Defer to a microtask so Alpine has time
+                                    // to flush its :value binding on the
+                                    // parent's hidden input before we read
+                                    // its DOM value back out.
+                                    queueMicrotask(() => this._readParent());
+                                };
+                                document.addEventListener('change', this._parentListener);
+                            }
+
                             if (this.searchUrl) {
                                 this._remote = window.lcMakeRemoteSearch({
-                                    url: () => this.searchUrl,
+                                    // Skip the fetch when locked; otherwise
+                                    // append &parent= so the server can scope
+                                    // results to the selected parent value.
+                                    url: () => {
+                                        if (this.isLocked) return '';
+                                        let u = this.searchUrl;
+                                        if (this.dependsOn && this.parentValue) {
+                                            u += (u.indexOf('?') >= 0 ? '&' : '?') + 'parent=' + encodeURIComponent(this.parentValue);
+                                        }
+                                        return u;
+                                    },
                                     debounceMs: () => this.debounceMs ?? 250,
                                     onLoading: (v) => { this.loading = v; if (v) { this.searchError = ''; this.liveMessage = this.a11y.loading || 'Searching…'; } },
                                     onResult: (items) => {
@@ -459,6 +545,14 @@
                                 });
                                 this.$watch('query', (q) => this._remote.queue(q));
                             }
+
+                            this.$watch('parentValue', () => {
+                                if (this._remote && this.parentValue) {
+                                    // Refetch when the parent changes so the
+                                    // child sees its scoped items right away.
+                                    this._remote.queue(this.query);
+                                }
+                            });
                         },
                     }));
                 });

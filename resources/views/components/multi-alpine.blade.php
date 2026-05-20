@@ -18,6 +18,8 @@
     'searchUrl' => null,
     'debounceMs' => null,
     'renderLimit' => 50,
+    'dependsOn' => null,
+    'dependsMessage' => null,
 ])
 @php
     $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -45,10 +47,12 @@
             'title' => (string) $get('title'),
             'subtitle' => (string) ($get('subtitle') ?? ''),
             'svg' => (string) ($get('svg') ?? ''),
+            'parent' => $get('parent') !== null ? (string) $get('parent') : null,
         ];
     })->values()->all();
 
     $selectedKeys = collect($selected)->map(fn ($v) => (string) $v)->values()->all();
+    $dependsMessage = $dependsMessage ?? ($dependsOn ? "Select {$dependsOn} first" : null);
 
     $config = [
         'items' => $normalised,
@@ -61,6 +65,9 @@
         'searchUrl' => $searchUrl,
         'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
         'renderLimit' => is_numeric($renderLimit) ? (int) $renderLimit : 50,
+        'dependsOn' => $dependsOn,
+        'dependsMessage' => $dependsMessage,
+        'placeholder' => $placeholder,
         'a11y' => [
             'options_available' => 'options available',
             'no_options' => 'No options.',
@@ -113,7 +120,8 @@
             @if ($required) aria-required="true" @endif
             @if ($disabled) aria-disabled="true" @endif
             @if ($error) aria-invalid="true" aria-describedby="{{ $errorId }}" @endif
-            @click="toggle()"
+            :aria-disabled="isLocked ? 'true' : null"
+            @click="if (isLocked) return; toggle()"
             @keydown.arrow-down.prevent="open ? move(1) : openMenu(0)"
             @keydown.arrow-up.prevent="open ? move(-1) : openMenu(visible.length - 1)"
             @keydown.home.prevent="if (open) { cursor = 0; }"
@@ -123,7 +131,7 @@
             @keydown.tab="if (open) { close(); }">
         <span class="lc-select__chosen">
             <template x-if="values.length === 0">
-                <span class="lc-select__placeholder">{{ $placeholder }}</span>
+                <span class="lc-select__placeholder" x-text="effectivePlaceholder"></span>
             </template>
             <template x-if="values.length > 0 && values.length <= chipsLimit">
                 <span class="lc-select__chips">
@@ -279,6 +287,10 @@
                         max: config.max,
                         chipsLimit: config.chipsLimit ?? 3,
                         renderLimit: config.renderLimit ?? 50,
+                        dependsOn: config.dependsOn || null,
+                        dependsMessage: config.dependsMessage || '',
+                        placeholder: config.placeholder || '',
+                        parentValue: '',
                         a11y: config.a11y || {},
                         values: Array.isArray(config.selected) ? [...config.selected] : [],
                         query: '',
@@ -291,9 +303,48 @@
                         searchError: '',
                         _remote: null,
 
+                        get isLocked() {
+                            return this.dependsOn && !this.parentValue;
+                        },
+
+                        get effectivePlaceholder() {
+                            return this.isLocked ? (this.dependsMessage || this.placeholder) : this.placeholder;
+                        },
+
                         get filtered() {
+                            if (this.isLocked) return [];
                             this._filter ??= window.lcMakeFilter();
-                            return this._filter(this.items, this.query);
+                            const pool = this._parentScoped();
+                            return this._filter(pool, this.query);
+                        },
+
+                        _parentScoped() {
+                            if (!this.dependsOn || !this.parentValue) return this.items;
+                            if (this._lastScopedParent === this.parentValue
+                                && this._lastScopedItems === this.items
+                                && this._lastScoped) {
+                                return this._lastScoped;
+                            }
+                            this._lastScopedParent = this.parentValue;
+                            this._lastScopedItems = this.items;
+                            this._lastScoped = this.items.filter(
+                                (o) => o.parent == null || o.parent === this.parentValue
+                            );
+                            return this._lastScoped;
+                        },
+
+                        _readParent() {
+                            const el = document.querySelector('[name="' + this.dependsOn + '"]');
+                            const next = el ? String(el.value || '') : '';
+                            if (next === this.parentValue) return;
+                            this.parentValue = next;
+                            if (this.values.length > 0) {
+                                this.values = [];
+                                this.$nextTick(() => {
+                                    this.$el.querySelectorAll('input[type=hidden]').forEach((el) =>
+                                        el.dispatchEvent(new Event('change', { bubbles: true })));
+                                });
+                            }
                         },
 
                         get visible() {
@@ -451,9 +502,25 @@
                                 if (this.cursor > max) this.cursor = Math.max(0, max);
                             });
 
+                            if (this.dependsOn) {
+                                this._readParent();
+                                this._parentListener = (e) => {
+                                    if (!e.target || e.target.name !== this.dependsOn) return;
+                                    queueMicrotask(() => this._readParent());
+                                };
+                                document.addEventListener('change', this._parentListener);
+                            }
+
                             if (this.searchUrl) {
                                 this._remote = window.lcMakeRemoteSearch({
-                                    url: () => this.searchUrl,
+                                    url: () => {
+                                        if (this.isLocked) return '';
+                                        let u = this.searchUrl;
+                                        if (this.dependsOn && this.parentValue) {
+                                            u += (u.indexOf('?') >= 0 ? '&' : '?') + 'parent=' + encodeURIComponent(this.parentValue);
+                                        }
+                                        return u;
+                                    },
                                     debounceMs: () => this.debounceMs ?? 250,
                                     onLoading: (v) => { this.loading = v; if (v) { this.searchError = ''; this.liveMessage = this.a11y.loading || 'Searching…'; } },
                                     onResult: (items) => {
@@ -474,6 +541,12 @@
                                 });
                                 this.$watch('query', (q) => this._remote.queue(q));
                             }
+
+                            this.$watch('parentValue', () => {
+                                if (this._remote && this.parentValue) {
+                                    this._remote.queue(this.query);
+                                }
+                            });
                         },
                     }));
                 });
