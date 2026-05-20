@@ -129,6 +129,36 @@
 .lc-select__tag-input::placeholder { color: var(--lc-ink-dim); }
 .lc-select__menu--tags { max-height: 18rem; }
 
+/* Search row · wraps the search input + spinner so the spinner can
+   live inside the visual frame of the input without affecting its
+   focus/border styling. */
+.lc-select__search-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.lc-select__search-row .lc-select__search { width: 100%; }
+.lc-select__spinner {
+    position: absolute;
+    right: .75rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--lc-ink) 25%, transparent);
+    border-top-color: var(--lc-accent);
+    animation: lc-select-spin 0.7s linear infinite;
+}
+@keyframes lc-select-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .lc-select__spinner { animation-duration: 2.4s; }
+}
+@media (forced-colors: active) {
+    .lc-select__spinner {
+        border-color: CanvasText;
+        border-top-color: Highlight;
+    }
+}
+
 /* Search-match highlight · the rank/filter helper wraps matched token
    ranges in <mark class="lc-select__match"> so the eye lands on the
    match. Uses color-mix off --lc-accent so it picks up the host theme. */

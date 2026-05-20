@@ -16,8 +16,14 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | [`card-single-alpine`](#x-selectcard-single-alpine) | <img src="docs/images/card-single-alpine.png" width="280" alt="card-single-alpine"> | — | — | big visual cards · radiogroup |
 | [`card-multi-alpine`](#x-selectcard-multi-alpine) | <img src="docs/images/card-multi-alpine.png" width="280" alt="card-multi-alpine"> | — | ✓ | big visual cards · toggle-button group |
 | [`tags-alpine`](#x-selecttags-alpine) | <img src="docs/images/tags-alpine.png" width="280" alt="tags-alpine"> | ✓ client | ✓ chips | free-form tag entry · combobox + listbox |
+| `searchable-alpine` + `:search-url` | <img src="docs/images/searchable-remote.png" width="280" alt="searchable-remote"> | ✓ remote | — | same component, debounced server-side search |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v2.6 highlights
+
+- **Debounced remote search.** Pass `:search-url="route('prey.search')"` (and optional `:debounce-ms="200"`) to `searchable-alpine`, `multi-alpine`, or `tags-alpine`. Typing fires a debounced `GET ${url}?q=…` that returns a JSON array of items; `AbortController` discards in-flight requests when the next keystroke lands so stale responses never overwrite fresh ones. The trigger's search input flips `aria-busy="true"` and a small accent-coloured spinner renders inside the input while a request is open.
+- The token-ranked filter from v2.5 still runs over whatever items the server returns, so server-side relevance can stay simple while the client still gets prefix-priority sort + highlighted matches.
 
 ### v2.5 highlights
 
@@ -310,6 +316,38 @@ Every dropdown variant (`searchable-alpine`, `multi-alpine`, `tags-alpine`) take
     :error="$errors->first('prey')"
 />
 ```
+
+---
+
+## Remote search · `:search-url` + `:debounce-ms`
+
+Any of the three search-bearing variants can swap its in-memory filter for a debounced server-side search by passing `:search-url`. The component fetches `GET ${url}?q=…` and expects a JSON array of `{key, title, subtitle?, svg?}`. Initial `items` still seed the dropdown before the first request lands, so the menu opens with content even on cold mounts.
+
+```blade
+<x-select::searchable-alpine
+    name="prey"
+    :items="$preyTypes"            {{-- seeds the menu before the first fetch --}}
+    :search-url="route('prey.search')"
+    :debounce-ms="250"             {{-- defaults to 250ms when search-url is set --}}
+    label="Prey"
+    placeholder="Search prey..."
+/>
+```
+
+A bare-bones search endpoint:
+
+```php
+Route::get('/prey/search', function (Request $r) {
+    $q = strtolower((string) $r->query('q', ''));
+    return PreyType::query()
+        ->when($q !== '', fn ($q2) => $q2->whereRaw('LOWER(name) LIKE ?', ["%{$q}%"]))
+        ->limit(25)
+        ->get()
+        ->map(fn ($p) => ['key' => $p->key, 'title' => $p->name, 'subtitle' => $p->subtitle, 'svg' => $p->icon_svg]);
+})->name('prey.search');
+```
+
+The client still applies v2.5 token-aware ranking + match highlighting over the server's response, so prefix matches still float to the top and matched substrings still get `<mark>` wrapping. An in-flight `AbortController` cancels stale requests when the user keeps typing, and the search input picks up `aria-busy="true"` while a request is open.
 
 ---
 

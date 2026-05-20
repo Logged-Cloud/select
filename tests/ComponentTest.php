@@ -327,6 +327,48 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── remote search hook (v2.6 · debounce + fetch) ──────────────────
+
+test('search-helper partial ships a remote-search factory with abort + debounce', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/search-helpers.blade.php');
+    expect($tpl)
+        ->toContain('window.lcMakeRemoteSearch')
+        ->and($tpl)->toContain('new AbortController()')
+        ->and($tpl)->toContain('setTimeout')
+        ->and($tpl)->toContain('encodeURIComponent')
+        ->and($tpl)->toContain('AbortError');
+});
+
+test('searchable / multi / tags expose searchUrl + debounceMs props and wire onLoading', function () {
+    foreach (['searchable-alpine', 'multi-alpine', 'tags-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain("'searchUrl' => null")
+            ->and($tpl)->toContain("'debounceMs' => null")
+            ->and($tpl)->toContain('window.lcMakeRemoteSearch')
+            ->and($tpl)->toContain("this.\$watch('query', (q) => this._remote.queue(q))");
+    }
+});
+
+test('dropdown variants render a loading spinner and mark search aria-busy', function () {
+    foreach (['searchable-alpine', 'multi-alpine'] as $name) {
+        $tpl = file_get_contents(__DIR__.'/../resources/views/components/'.$name.'.blade.php');
+        expect($tpl)
+            ->toContain('lc-select__search-row')
+            ->and($tpl)->toContain('lc-select__spinner')
+            ->and($tpl)->toContain(':aria-busy="loading"');
+    }
+});
+
+test('styles ship a spinner block with reduced-motion + forced-colors fallbacks', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toContain('.lc-select__spinner')
+        ->and($css)->toContain('@keyframes lc-select-spin')
+        ->and($css)->toContain('prefers-reduced-motion: reduce')
+        ->and($css)->toMatch('/\.lc-select__spinner\s*{[^}]*border-color:\s*CanvasText/s');
+});
+
 // ─── shared search helper (v2.5 · token ranking + highlight) ───────
 
 test('search helper partial ships rank + highlight + escape on window', function () {

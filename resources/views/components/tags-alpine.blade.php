@@ -12,6 +12,8 @@
     'max' => null,
     'allowCustom' => true,
     'error' => null,
+    'searchUrl' => null,
+    'debounceMs' => null,
 ])
 @php
     $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
@@ -48,11 +50,14 @@
         'triggerId' => $triggerId,
         'max' => is_numeric($max) ? (int) $max : null,
         'allowCustom' => (bool) $allowCustom,
+        'searchUrl' => $searchUrl,
+        'debounceMs' => is_numeric($debounceMs) ? (int) $debounceMs : null,
         'a11y' => [
             'options_available' => 'suggestions available',
             'added' => 'Added',
             'removed' => 'Removed',
             'limit_reached' => 'Maximum number of tags reached.',
+            'loading' => 'Searching…',
         ],
     ];
 @endphp
@@ -187,11 +192,35 @@
                         listboxId: config.listboxId,
                         triggerId: config.triggerId,
                         a11y: config.a11y || {},
+                        searchUrl: config.searchUrl || null,
+                        debounceMs: config.debounceMs,
+                        loading: false,
+                        _remote: null,
 
                         open: false,
                         query: '',
                         activeKey: null,
                         liveMessage: '',
+
+                        init() {
+                            if (!this.searchUrl) return;
+                            this._remote = window.lcMakeRemoteSearch({
+                                url: () => this.searchUrl,
+                                debounceMs: () => this.debounceMs ?? 250,
+                                onLoading: (v) => { this.loading = v; if (v) this.liveMessage = this.a11y.loading || 'Searching…'; },
+                                onResult: (items) => {
+                                    this.items = (items || []).map((o) => ({
+                                        key: String(o.key ?? ''),
+                                        title: String(o.title ?? ''),
+                                        subtitle: String(o.subtitle ?? ''),
+                                        svg: String(o.svg ?? ''),
+                                    }));
+                                    const first = this.filtered[0];
+                                    this.activeKey = first ? first.key : null;
+                                },
+                            });
+                            this.$watch('query', (q) => this._remote.queue(q));
+                        },
 
                         get filtered() {
                             const pool = this.items.filter((o) => !this.values.includes(o.key));
