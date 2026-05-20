@@ -16,10 +16,14 @@
     'disabled' => false,
 ])
 @php
-    $triggerId = $id ?? $name;
+    // ID derives from label when present (camelCased) so the markup gets
+    // human-readable ids: label="Prey type" → id="preyType". Falls back
+    // to the field name. An explicit `id` prop always wins.
+    $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
     $listboxId = $triggerId.'-listbox';
     $searchId = $triggerId.'-search';
     $liveId = $triggerId.'-live';
+    $fallbackId = $triggerId.'-fallback';
     $allowEmpty = $allowEmpty ?? config('select.behavior.allow_empty', true);
     $searchable = $searchable ?? config('select.behavior.searchable', true);
     $iconSize = $iconSize ?? config('select.behavior.icon_size', '1.75rem');
@@ -27,6 +31,8 @@
     $emptyLabel = $emptyLabel ?? config('select.copy.empty_label', 'not set');
     $searchLabel = $searchLabel ?? config('select.copy.search_label', 'Search...');
     $noResultsLabel = $noResultsLabel ?? config('select.copy.no_results_label', 'No options match that.');
+    $noJsLabel = config('select.copy.no_js_indicator', 'JS off');
+    $noJsCopy = config('select.copy.no_js_warning', 'JavaScript is needed for the rich picker.');
 
     // Caller may pass arrays or objects with key/title/subtitle/svg;
     // we coerce to a plain shape so the Alpine data is predictable.
@@ -64,11 +70,22 @@
     ];
 @endphp
 <div x-data="loggedCloudSelect({{ \Illuminate\Support\Js::from($config) }})"
-     x-init="$nextTick(() => syncSelectedFromValue())"
+     x-init="$nextTick(() => { syncSelectedFromValue(); if ($refs.fallback) { $refs.fallback.name = ''; } })"
      class="lc-select"
      style="--lc-icon-size: {{ $iconSize }};"
      @click.outside="close()"
      @keydown.escape.window="if (open) { close(); }">
+
+    @include('select::partials.fallback', [
+        'name' => $name,
+        'items' => $normalised,
+        'selected' => $selected,
+        'multi' => false,
+        'fallbackId' => $fallbackId,
+        'required' => $required,
+        'noJsLabel' => $noJsLabel,
+        'noJsCopy' => $noJsCopy,
+    ])
 
     <input type="hidden" name="{{ $name }}" :value="value" x-ref="hidden"
            @if ($required) required @endif>

@@ -10,8 +10,11 @@
     'disabled' => false,
 ])
 @php
-    $groupId = $id ?? $name;
+    $groupId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
+    $fallbackId = $groupId.'-fallback';
     $iconSize = $iconSize ?? '1rem';
+    $noJsLabel = config('select.copy.no_js_indicator', 'JS off');
+    $noJsCopy = config('select.copy.no_js_warning', 'JavaScript is needed for the rich picker.');
 
     $normalised = collect($items)->map(function ($item) {
         if (is_array($item)) {
@@ -34,12 +37,20 @@
     ];
 @endphp
 <div x-data="loggedCloudInlineButtons({{ \Illuminate\Support\Js::from($config) }})"
+     x-init="$nextTick(() => { if ($refs.fallback) { $refs.fallback.name = ''; } })"
      class="lc-inline-buttons"
+     id="{{ $groupId }}"
      style="--lc-icon-size: {{ $iconSize }};"
      role="radiogroup"
      @if ($label) aria-label="{{ $label }}" @endif
      @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
      @if ($required) aria-required="true" @endif>
+
+    @include('select::partials.fallback', [
+        'name' => $name, 'items' => $normalised, 'selected' => $selected,
+        'multi' => false, 'fallbackId' => $fallbackId, 'required' => $required,
+        'noJsLabel' => $noJsLabel, 'noJsCopy' => $noJsCopy,
+    ])
 
     <input type="hidden" name="{{ $name }}" :value="value" x-ref="hidden"
            @if ($required) required @endif>

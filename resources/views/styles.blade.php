@@ -6,7 +6,16 @@
     $theme = config('select.theme');
 @endphp
 <style>
-.lc-select {
+/* CSS custom properties belong on every variant wrapper · without this
+   the cards / lists / inline-buttons variants would fall through to
+   undefined --lc-accent and lose their selected-state colour. */
+.lc-select,
+.lc-radio-list,
+.lc-radio-grid,
+.lc-multi-grid,
+.lc-multi-list,
+.lc-inline-buttons,
+.lc-cards {
     --lc-bg: {!! $theme['bg'] !!};
     --lc-menu-bg: {!! $theme['menu_bg'] !!};
     --lc-border: {!! $theme['border'] !!};
@@ -188,7 +197,7 @@
 }
 .lc-radio-grid__item {
     background: var(--lc-bg);
-    border: 1px solid var(--lc-border);
+    border: 2px solid var(--lc-border);
     border-radius: var(--lc-radius);
     padding: .65rem .5rem;
     color: var(--lc-ink);
@@ -228,7 +237,7 @@
 .lc-radio-list { display: flex; flex-direction: column; gap: .35rem; }
 .lc-radio-list__item {
     background: var(--lc-bg);
-    border: 1px solid var(--lc-border);
+    border: 2px solid var(--lc-border);
     border-radius: var(--lc-radius);
     padding: .55rem .75rem;
     color: var(--lc-ink);
@@ -289,7 +298,7 @@
 .lc-multi-grid__item,
 .lc-multi-list__item {
     background: var(--lc-bg);
-    border: 1px solid var(--lc-border);
+    border: 2px solid var(--lc-border);
     border-radius: var(--lc-radius);
     color: var(--lc-ink);
     cursor: pointer;
@@ -408,7 +417,7 @@
 }
 .lc-cards__item {
     background: var(--lc-bg);
-    border: 1px solid var(--lc-border);
+    border: 2px solid var(--lc-border);
     border-radius: var(--lc-radius);
     padding: 1.25rem 1rem;
     color: var(--lc-ink);
@@ -463,6 +472,41 @@
     font-size: 0.85rem;
     color: var(--lc-ink-dim);
     line-height: 1.35;
+}
+
+/* ── progressive-enhancement fallback (no-JS) ────────────────────── */
+
+/* Native <select> fallback · invisible until <noscript> CSS flips it on. */
+.lc-select__fallback {
+    background: var(--lc-bg);
+    color: var(--lc-ink);
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    padding: .55rem .75rem;
+    font: inherit;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: .5rem;
+}
+
+/* JS-off indicator pill · only appears when scripting is disabled. */
+.lc-no-js {
+    display: none;
+    align-items: center;
+    gap: .25rem;
+    margin-left: .5rem;
+    padding: 0 .35rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, #dc2626 30%, transparent);
+    color: #fca5a5;
+    font-size: 0.72rem;
+    font-weight: 600;
+    vertical-align: middle;
+}
+.lc-no-js > [aria-hidden] { color: #f87171; }
+@media (forced-colors: active) {
+    .lc-no-js { background: Highlight; color: HighlightText; }
 }
 
 /* Visually-hidden region for aria-live announcements. Same rules as

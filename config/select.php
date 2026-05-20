@@ -5,8 +5,8 @@
 | Logged Cloud · select component defaults
 |--------------------------------------------------------------------------
 |
-| These are applied when an individual <x-select::box> does not pass an
-| explicit attribute. The component is fully configurable per-instance;
+| These are applied when an individual <x-select::*> does not pass an
+| explicit attribute. The components are fully configurable per-instance;
 | this file is for app-wide defaults.
 |
 */
@@ -14,23 +14,22 @@
 return [
 
     /*
-    | Visual defaults. Most apps will leave these as the CSS vars below
-    | and override the underlying values in their own stylesheet; that
-    | way the dropdown picks up the host app's theme without per-app
-    | config changes.
+    | Visual defaults · the fallback chain on each CSS variable is:
+    |   --lc-select-<key>  (explicit override the host can set)
+    |   then a common host-app var (--surface, --accent, …)
+    |   then a hard-coded RGB picked from the fish.logged.cloud palette so
+    |   an app that sets *nothing* still looks like a logged.cloud family
+    |   app rather than a generic Tailwind grey.
     */
     'theme' => [
-        // CSS custom properties consumed by the rendered markup. Override
-        // any of these in your app's CSS to retheme. Defaults reference
-        // a handful of common host-app vars so the dropdown blends in.
-        'bg'         => 'var(--lc-select-bg, var(--surface-2, #1f2937))',
-        'menu_bg'    => 'var(--lc-select-menu-bg, var(--surface-2, #1f2937))',
-        'border'     => 'var(--lc-select-border, var(--line, #374151))',
-        'ink'        => 'var(--lc-select-ink, var(--ink, #f9fafb))',
-        'ink_dim'    => 'var(--lc-select-ink-dim, var(--ink-dim, #9ca3af))',
-        'accent'     => 'var(--lc-select-accent, var(--accent, #0e9f6e))',
-        'icon_bg'    => 'var(--lc-select-icon-bg, var(--surface, #111827))',
-        'hover_bg'   => 'var(--lc-select-hover-bg, var(--line, #374151))',
+        'bg'         => 'var(--lc-select-bg, var(--surface-2, var(--surface, #25272A)))',
+        'menu_bg'    => 'var(--lc-select-menu-bg, var(--surface-2, var(--surface, #25272A)))',
+        'border'     => 'var(--lc-select-border, var(--line, #3A3D40))',
+        'ink'        => 'var(--lc-select-ink, var(--ink, #F0EDE5))',
+        'ink_dim'    => 'var(--lc-select-ink-dim, var(--ink-dim, #A3A099))',
+        'accent'     => 'var(--lc-select-accent, var(--accent, #C7593A))',
+        'icon_bg'    => 'var(--lc-select-icon-bg, var(--surface, #1E1F22))',
+        'hover_bg'   => 'var(--lc-select-hover-bg, var(--line, #3A3D40))',
         'radius'     => 'var(--lc-select-radius, .5rem)',
     ],
 
@@ -43,6 +42,8 @@ return [
         'search_label'     => 'Search...',
         'empty_label'      => 'not set',
         'no_results_label' => 'No options match that.',
+        'no_js_warning'    => 'JavaScript is needed for the rich picker. Using the basic select instead.',
+        'no_js_indicator'  => 'JS off',
     ],
 
     /*

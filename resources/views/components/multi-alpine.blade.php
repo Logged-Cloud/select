@@ -16,15 +16,18 @@
     'chipsLimit' => 3,
 ])
 @php
-    $triggerId = $id ?? $name;
+    $triggerId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
     $listboxId = $triggerId.'-listbox';
     $searchId = $triggerId.'-search';
     $liveId = $triggerId.'-live';
+    $fallbackId = $triggerId.'-fallback';
     $searchable = $searchable ?? config('select.behavior.searchable', true);
     $iconSize = $iconSize ?? config('select.behavior.icon_size', '1.75rem');
     $placeholder = $placeholder ?? config('select.copy.placeholder', 'Select options');
     $searchLabel = $searchLabel ?? config('select.copy.search_label', 'Search...');
     $noResultsLabel = $noResultsLabel ?? config('select.copy.no_results_label', 'No options match that.');
+    $noJsLabel = config('select.copy.no_js_indicator', 'JS off');
+    $noJsCopy = config('select.copy.no_js_warning', 'JavaScript is needed for the rich picker.');
 
     $normalised = collect($items)->map(function ($item) {
         if (is_array($item)) {
@@ -61,11 +64,17 @@
     ];
 @endphp
 <div x-data="loggedCloudMultiSelect({{ \Illuminate\Support\Js::from($config) }})"
-     x-init="$nextTick(() => syncFromSelected())"
+     x-init="$nextTick(() => { syncFromSelected(); if ($refs.fallback) { $refs.fallback.name = ''; } })"
      class="lc-select lc-select--multi"
      style="--lc-icon-size: {{ $iconSize }};"
      @click.outside="close()"
      @keydown.escape.window="if (open) { close(); }">
+
+    @include('select::partials.fallback', [
+        'name' => $name, 'items' => $normalised, 'selected' => $selectedKeys,
+        'multi' => true, 'fallbackId' => $fallbackId, 'required' => $required,
+        'noJsLabel' => $noJsLabel, 'noJsCopy' => $noJsCopy,
+    ])
 
     {{-- Hidden inputs · one per chosen key so Laravel's request->validate(['name' => 'array']) just works. --}}
     <template x-for="key in values" :key="'h-'+key">

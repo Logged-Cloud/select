@@ -11,8 +11,11 @@
     'max' => null,
 ])
 @php
-    $groupId = $id ?? $name;
+    $groupId = $id ?? ($label ? \Illuminate\Support\Str::camel(\Illuminate\Support\Str::slug($label, '_')) : $name);
+    $fallbackId = $groupId.'-fallback';
     $iconSize = $iconSize ?? '1.5rem';
+    $noJsLabel = config('select.copy.no_js_indicator', 'JS off');
+    $noJsCopy = config('select.copy.no_js_warning', 'JavaScript is needed for the rich picker.');
 
     $normalised = collect($items)->map(function ($item) {
         if (is_array($item)) {
@@ -43,12 +46,20 @@
     ];
 @endphp
 <div x-data="loggedCloudMultiList({{ \Illuminate\Support\Js::from($config) }})"
+     x-init="$nextTick(() => { if ($refs.fallback) { $refs.fallback.name = ''; } })"
      class="lc-multi-list"
+     id="{{ $groupId }}"
      style="--lc-icon-size: {{ $iconSize }};"
      role="group"
      @if ($label) aria-label="{{ $label }}" @endif
      @if ($labelledBy) aria-labelledby="{{ $labelledBy }}" @endif
      @if ($required) aria-required="true" @endif>
+
+    @include('select::partials.fallback', [
+        'name' => $name, 'items' => $normalised, 'selected' => $selectedKeys,
+        'multi' => true, 'fallbackId' => $fallbackId, 'required' => $required,
+        'noJsLabel' => $noJsLabel, 'noJsCopy' => $noJsCopy,
+    ])
 
     <template x-for="key in values" :key="'h-'+key">
         <input type="hidden" :name="@js($name).concat('[]')" :value="key">

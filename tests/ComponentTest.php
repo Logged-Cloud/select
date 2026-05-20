@@ -305,6 +305,67 @@ test('styles use system colours under forced-colors mode', function () use ($sty
     }
 });
 
+// ─── progressive enhancement fallback ──────────────────────────────
+
+test('every variant includes the no-JS fallback partial', function () {
+    $dir = __DIR__.'/../resources/views/components';
+    foreach (glob($dir.'/*.blade.php') as $path) {
+        $tpl = file_get_contents($path);
+        expect($tpl)->toContain("@include('select::partials.fallback'");
+    }
+});
+
+test('fallback partial renders a native select with name behind noscript styling', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/partials/fallback.blade.php');
+    expect($tpl)
+        ->toContain('<noscript>')
+        ->and($tpl)->toContain('<select')
+        ->and($tpl)->toContain('data-lc-fallback')
+        ->and($tpl)->toContain('class="lc-no-js"')
+        ->and($tpl)->toContain('data-lc-no-js');
+});
+
+test('every variant clears the native fallback name when Alpine boots', function () {
+    $dir = __DIR__.'/../resources/views/components';
+    foreach (glob($dir.'/*.blade.php') as $path) {
+        $tpl = file_get_contents($path);
+        expect($tpl)->toContain('$refs.fallback');
+    }
+});
+
+// ─── label-derived ids ─────────────────────────────────────────────
+
+test('every variant derives the id from the label as camelCase', function () {
+    $dir = __DIR__.'/../resources/views/components';
+    foreach (glob($dir.'/*.blade.php') as $path) {
+        $tpl = file_get_contents($path);
+        expect($tpl)
+            ->toContain('Str::camel')
+            ->and($tpl)->toContain('Str::slug');
+    }
+});
+
+// ─── default colour palette ────────────────────────────────────────
+
+test('default --lc-accent falls back to the fish.logged.cloud terracotta', function () {
+    $config = require __DIR__.'/../config/select.php';
+    expect($config['theme']['accent'])->toContain('#C7593A');
+});
+
+test('config exposes no-JS copy', function () {
+    $config = require __DIR__.'/../config/select.php';
+    expect($config['copy'])
+        ->toHaveKey('no_js_warning')
+        ->toHaveKey('no_js_indicator');
+});
+
+// ─── card borders ──────────────────────────────────────────────────
+
+test('every card-style variant has a 2px border', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect(substr_count($css, 'border: 2px solid var(--lc-border)'))->toBeGreaterThanOrEqual(4);
+});
+
 // ─── service provider ──────────────────────────────────────────────
 
 test('service provider loads namespaced views and publishes config + views', function () use ($provider) {
