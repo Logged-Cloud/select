@@ -23,16 +23,31 @@ class MapData
         return self::load('world.json');
     }
 
-    /** UK country map · outline polygon + ~40 major-city points. */
+    /** UK country map · ~16 clickable region polygons (Greater London,
+     *  South East, Scotland, etc) grouped from Natural Earth admin-1.
+     *  Click a region to drill into uk-<region>.json. */
     public static function uk(): array
     {
         return self::load('uk.json');
     }
 
+    /** A UK region's sub-region polygons · pass 'greater-london',
+     *  'south-east', 'scotland', etc. Returns an empty list if the
+     *  region key isn't recognised. */
+    public static function ukRegion(string $regionKey): array
+    {
+        $file = 'uk-'.preg_replace('/[^a-z0-9-]+/', '', strtolower($regionKey)).'.json';
+        $path = __DIR__.'/../resources/data/'.$file;
+        if (! is_file($path)) {
+            return ['viewBox' => '0 0 500 500', 'items' => []];
+        }
+        return self::load($file);
+    }
+
     /**
-     * Town-level dataset keyed by city · returns one bucket or the full set.
-     * Each bucket has its own zoomed viewBox so the town-detail map renders
-     * at a comparable scale regardless of where the city sits.
+     * Hand-curated town markers per major UK city · returns one bucket or
+     * the full set. Kept around as an alternative to the polygon-based
+     * uk-<region>.json drilldown for point-marker aesthetics.
      */
     public static function ukTowns(?string $cityKey = null): array
     {

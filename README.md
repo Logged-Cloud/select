@@ -25,6 +25,13 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v3.1 highlights · clickable region polygons all the way down
+
+- **UK is now polygons, not dots** · `uk.json` ships 16 Natural Earth admin-1 regions (Greater London, South East, Scotland, etc) grouped from the raw 232 sub-features. Each region is one SVG path that visually shows internal sub-borders while clicking anywhere selects the region.
+- **Per-region drilldown datasets** · `resources/data/uk-greater-london.json`, `uk-south-east.json`, `uk-scotland.json`, … one file per UK region with its sub-region polygons re-projected into a tight per-region viewBox so the zoom is useful.
+- **`dataset="uk:<region>"`** shortcut · the component resolves `dataset="uk:greater-london"` to the matching file via the new `MapData::ukRegion('greater-london')` helper.
+- The hand-curated dot-marker `uk-towns.json` is kept as an alternative — apps that prefer point markers over polygons can still use it.
+
 ### v3.0 highlights · `map-svg-alpine` + bundled world / UK data
 
 - **New variant `map-svg-alpine`** · same trigger / menu / a11y pattern as the dropdown family, but the menu content is an `<svg>` with each item as a clickable `<path>` (polygon) or `<circle>` (point). Keyboard arrow / Home / End cycle through items; the bottom hover-strip shows the active item's title.

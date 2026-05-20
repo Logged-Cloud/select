@@ -144,56 +144,105 @@ def build_world(src_dir, out_dir):
 
 
 def build_uk(src_dir, out_dir):
-    """UK map = outline (non-interactive background) + city POINTS (clickable
-    drilldown items). The user clicks a city dot, that's the level-2 pick."""
-    # 1. Extract UK outline from admin-0.
-    admin0_path = os.path.join(src_dir, 'ne_110m_admin_0_countries.geojson')
-    with open(admin0_path, 'r') as f:
-        admin0 = json.load(f)
-    uk_feat = next((
-        f for f in admin0['features']
-        if (f['properties'].get('ADM0_A3') or '').upper() == 'GBR'
-    ), None)
-    if not uk_feat:
-        raise RuntimeError('No GBR feature in admin-0')
-    outline = geom_to_path(uk_feat['geometry'], project_uk)
+    """UK map = ~16 clickable region polygons grouped from admin-1 by the
+    `region` field. Each region is a single SVG path concatenating every
+    sub-feature's outer ring, so the whole region behaves as one click
+    target even though it visually shows sub-borders."""
+    admin1_path = os.path.join(src_dir, 'ne_10m_admin_1_states_provinces.geojson')
+    with open(admin1_path, 'r') as f:
+        admin1 = json.load(f)
 
-    # 2. Extract UK city points from populated_places.
-    places_path = os.path.join(src_dir, 'ne_10m_populated_places.geojson')
-    with open(places_path, 'r') as f:
-        places = json.load(f)
-    items = []
-    seen = set()
-    for feat in places['features']:
+    # Group GB features by their `region` field.
+    by_region = {}
+    for feat in admin1['features']:
         props = feat['properties']
-        if (props.get('ADM0_A3') or '').upper() != 'GBR':
+        if props.get('admin') != 'United Kingdom':
             continue
-        pop = props.get('POP_MAX') or props.get('POP_MIN') or 0
-        if pop < 100000:
+        region = (props.get('region') or '').strip()
+        if not region:
             continue
-        name = props.get('NAME') or props.get('NAME_EN') or ''
-        if not name or name in seen:
+        by_region.setdefault(region, []).append(feat)
+
+    items = []
+    for region, feats in by_region.items():
+        # Concat every sub-feature's outer-ring path → one combined SVG d-string.
+        paths = []
+        for feat in feats:
+            p = geom_to_path(feat['geometry'], project_uk)
+            if p:
+                paths.append(p)
+        d = ' '.join(paths)
+        if not d:
             continue
-        seen.add(name)
-        geom = feat['geometry']
-        if geom['type'] != 'Point':
-            continue
-        lon, lat = geom['coordinates']
-        if not (UK_BBOX_LON[0] <= lon <= UK_BBOX_LON[1] and UK_BBOX_LAT[0] <= lat <= UK_BBOX_LAT[1]):
-            continue
-        x, y = project_uk(lon, lat)
-        key = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
-        items.append({'key': key, 'title': name, 'cx': x, 'cy': y})
+        key = re.sub(r'[^a-z0-9]+', '-', region.lower()).strip('-')
+        items.append({'key': key, 'title': region, 'path': d, 'bbox': bbox_of_path(d)})
     items.sort(key=lambda x: x['title'])
 
     out_path = os.path.join(out_dir, 'uk.json')
     with open(out_path, 'w') as f:
         json.dump({
             'viewBox': f'0 0 {UK_W} {UK_H}',
-            'outline': outline,
             'items': items,
         }, f, separators=(',', ':'))
-    print(f'uk.json   {len(items)} cities   {os.path.getsize(out_path)} bytes')
+    print(f'uk.json   {len(items)} regions   {os.path.getsize(out_path)} bytes')
+
+    # Per-region sub-feature datasets · uk-greater-london.json, uk-south-east.json …
+    # Each one re-projects into its own region-tight bbox so the zoom is useful.
+    for region, feats in by_region.items():
+        key = re.sub(r'[^a-z0-9]+', '-', region.lower()).strip('-')
+        # Compute the region's lon/lat bbox from sub-feature coords.
+        lons, lats = [], []
+        for feat in feats:
+            geom = feat['geometry']
+            polys = geom.get('coordinates') or []
+            if geom['type'] == 'Polygon':
+                polys = [polys]
+            for poly in polys:
+                for ring in poly:
+                    for lon, lat in ring:
+                        lons.append(lon)
+                        lats.append(lat)
+        if not lons:
+            continue
+        # Add a small padding · 5% of the span each side.
+        lon_w, lon_e = min(lons), max(lons)
+        lat_s, lat_n = min(lats), max(lats)
+        pad_lon = (lon_e - lon_w) * 0.05 or 0.05
+        pad_lat = (lat_n - lat_s) * 0.05 or 0.05
+        lon_w -= pad_lon; lon_e += pad_lon
+        lat_s -= pad_lat; lat_n += pad_lat
+        view_w, view_h = 500, 500
+
+        def project(lon, lat, _w=lon_w, _e=lon_e, _s=lat_s, _n=lat_n, _vw=view_w, _vh=view_h):
+            x = round((lon - _w) * _vw / (_e - _w))
+            y = round((_n - lat) * _vh / (_n - _s))
+            return x, y
+
+        sub_items = []
+        for feat in feats:
+            props = feat['properties']
+            name = props.get('name') or props.get('name_en') or ''
+            if not name:
+                continue
+            d = geom_to_path(feat['geometry'], project)
+            if not d:
+                continue
+            sub_key = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+            sub_items.append({
+                'key': sub_key,
+                'title': name,
+                'path': d,
+                'parent': key,
+                'bbox': bbox_of_path(d),
+            })
+        sub_items.sort(key=lambda x: x['title'])
+        out_sub = os.path.join(out_dir, f'uk-{key}.json')
+        with open(out_sub, 'w') as f:
+            json.dump({
+                'viewBox': f'0 0 {view_w} {view_h}',
+                'items': sub_items,
+            }, f, separators=(',', ':'))
+        print(f'uk-{key}.json   {len(sub_items)} sub-regions   {os.path.getsize(out_sub)} bytes')
 
 
 def build_uk_towns(src_dir, out_dir):
@@ -314,4 +363,7 @@ if __name__ == '__main__':
     os.makedirs(out, exist_ok=True)
     build_world(src, out)
     build_uk(src, out)
+    # build_uk_towns kept as a separate optional dataset (point markers for
+    # hand-curated town lists per major city) — the polygon flow above now
+    # provides the primary drilldown via uk-<region>.json files.
     build_uk_towns(src, out)
