@@ -22,8 +22,29 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | [`map-svg-alpine`](#x-selectmap-svg-alpine) (world) | <img src="docs/images/map-world.png" width="280" alt="map-world"> | — | — | SVG map menu · click a country |
 | `map-svg-alpine` (country detail) | <img src="docs/images/map-uk.png" width="280" alt="map-uk"> | — | — | UK outline + city points |
 | `map-svg-alpine` drilldown | <img src="docs/images/map-drilldown.png" width="280" alt="map-drilldown"> | — | — | world → country → town via `depends-on` |
+| [`map-drilldown-alpine`](#x-selectmap-drilldown-alpine) | <img src="docs/images/map-drilldown-single.png" width="280" alt="map-drilldown-single"> | — | — | single trigger, menu swaps as user drills in |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v3.2 highlights · single-trigger map drilldown
+
+- **New variant `map-drilldown-alpine`** · one trigger, one dropdown. Click UK on the world map → menu stays open, swaps to UK regions. Click Greater London → menu swaps to London boroughs. Click a borough → menu closes with all three values set.
+- **Breadcrumb + back button** in the menu header so the user always knows where they are and can step back up the hierarchy.
+- **`:levels` config** · an array of `[{name, title, dataset, requires?}]` entries. `requires` gates whether the level is reachable (e.g. only drill into UK regions when `country=gb`). Stops drilldown gracefully when the chosen branch has no further data.
+- **One hidden input per level** so standard form posts get `country=gb&region=greater-london&borough=camden`. Re-opening the menu resumes at the deepest enabled level rather than rewinding.
+
+```blade
+<x-select::map-drilldown-alpine
+    name="location"
+    label="Pick a location"
+    :levels="[
+        ['name' => 'country', 'title' => 'Country', 'dataset' => 'world'],
+        ['name' => 'region',  'title' => 'UK region', 'dataset' => 'uk',
+            'requires' => ['country' => 'gb']],
+        ['name' => 'borough', 'title' => 'Borough',  'dataset' => 'uk:greater-london',
+            'requires' => ['region' => 'greater-london']],
+    ]" />
+```
 
 ### v3.1 highlights · clickable region polygons all the way down
 
