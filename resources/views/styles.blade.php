@@ -88,6 +88,182 @@
     outline-offset: 1px;
 }
 
+/* Rating · 5-star (or any max) picker with optional half-step. The track
+   acts as the role=slider element; each star is a stack of bg + fg svgs
+   so partial-fill (half-star) can clip the fg via clip-path. */
+.lc-rating {
+    --lc-rating-size: 1.5rem;
+    --lc-rating-gap: .25rem;
+    --lc-rating-empty: color-mix(in srgb, var(--lc-ink, currentColor) 25%, transparent);
+    --lc-rating-full: var(--lc-accent, #C7593A);
+    display: inline-block;
+}
+.lc-rating__track {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lc-rating-gap);
+    padding: .25rem;
+    border-radius: var(--lc-radius, .5rem);
+    cursor: pointer;
+}
+.lc-rating__track:focus-visible {
+    outline: 2px solid var(--lc-rating-full);
+    outline-offset: 2px;
+}
+.lc-rating__star {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: var(--lc-rating-size);
+    height: var(--lc-rating-size);
+    color: var(--lc-rating-empty);
+}
+.lc-rating__star.is-full { color: var(--lc-rating-full); }
+.lc-rating__star.is-half {
+    /* The fg star is clipped to the left half · the bg remains empty-colour
+       so visually we get "half full" without two icon paths. */
+    color: var(--lc-rating-empty);
+}
+.lc-rating__star-bg,
+.lc-rating__star-fg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.lc-rating__star-fg { color: var(--lc-rating-full); }
+.lc-rating__star.is-empty .lc-rating__star-fg { display: none; }
+.lc-rating__star.is-half .lc-rating__star-fg { clip-path: inset(0 50% 0 0); }
+.lc-rating__hit {
+    position: absolute;
+    inset: 0;
+    width: 50%;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    padding: 0;
+}
+.lc-rating__hit--right { left: 50%; }
+.lc-rating__hit:disabled { cursor: default; }
+.lc-rating__clear {
+    background: transparent;
+    border: 0;
+    color: var(--lc-ink-dim, currentColor);
+    padding: .25rem;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+}
+.lc-rating__clear:hover {
+    background: color-mix(in srgb, var(--lc-ink) 12%, transparent);
+}
+.lc-rating--error .lc-rating__track {
+    box-shadow: 0 0 0 2px #ef4444;
+    border-radius: var(--lc-radius);
+}
+@media (forced-colors: active) {
+    .lc-rating__star.is-full,
+    .lc-rating__star.is-half .lc-rating__star-fg { color: Highlight; }
+    .lc-rating__star { color: CanvasText; }
+}
+
+/* Colour-palette · a grid of swatch cells inside the dropdown menu. */
+.lc-select__menu--color {
+    padding: .75rem;
+}
+.lc-color__grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--lc-color-cols, 6), 1fr);
+    gap: .5rem;
+}
+.lc-color__cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: calc(var(--lc-radius) - .1rem);
+    cursor: pointer;
+    border: 2px solid transparent;
+    display: grid;
+    place-items: center;
+    transition: transform 120ms, border-color 120ms;
+}
+.lc-color__cell:hover,
+.lc-color__cell.is-active { transform: scale(1.06); border-color: var(--lc-border); }
+.lc-color__cell.is-selected { border-color: var(--lc-accent); }
+.lc-color__cell:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: 2px; }
+.lc-color__swatch {
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--lc-radius) - .25rem);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.15);
+}
+.lc-color__swatch--trigger {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 4px;
+    display: inline-block;
+    margin-right: .5rem;
+    vertical-align: middle;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+    flex: none;
+}
+.lc-color__check {
+    position: absolute;
+    color: white;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
+}
+.lc-color__caption {
+    text-align: center;
+    color: var(--lc-ink-dim);
+    font-size: .85rem;
+    margin-top: .5rem;
+    min-height: 1.2em;
+}
+@media (forced-colors: active) {
+    .lc-color__cell.is-selected { border-color: Highlight; }
+    .lc-color__check { color: HighlightText; }
+}
+
+/* Map-pin · click anywhere on the SVG to drop a pin. */
+.lc-map--pinnable { cursor: crosshair; }
+.lc-map__item--bg { pointer-events: none; }
+.lc-map__pin { pointer-events: none; }
+.lc-map__pin-halo {
+    fill: color-mix(in srgb, var(--lc-accent) 30%, transparent);
+    animation: lc-map-pin-pulse 1.4s ease-out infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+}
+.lc-map__pin-dot {
+    fill: var(--lc-accent);
+    stroke: var(--lc-bg);
+    stroke-width: 1.5;
+}
+@keyframes lc-map-pin-pulse {
+    0%   { r: 6;  opacity: .9; }
+    100% { r: 14; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lc-map__pin-halo { animation: none; opacity: .5; }
+}
+.lc-map__pin-clear {
+    background: transparent;
+    border: 0;
+    color: var(--lc-ink-dim);
+    font-size: 1.1rem;
+    line-height: 1;
+    margin-left: .5rem;
+    cursor: pointer;
+}
+@media (forced-colors: active) {
+    .lc-map__pin-dot { fill: Highlight; stroke: Canvas; }
+    .lc-map__pin-halo { fill: HighlightText; }
+}
+
 /* Tree picker · hierarchical list with expandable branches. The container
    is the familiar dropdown menu; rows render server-side and Alpine drives
    the visibility (collapsed-ancestor hides) + roving-tabindex pattern. */

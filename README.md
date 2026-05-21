@@ -24,8 +24,19 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | `map-svg-alpine` drilldown | <img src="docs/images/map-drilldown.png" width="280" alt="map-drilldown"> | — | — | world → country → town via `depends-on` |
 | [`map-drilldown-alpine`](#x-selectmap-drilldown-alpine) | <img src="docs/images/map-drilldown-single.png" width="280" alt="map-drilldown-single"> | — | — | single trigger, menu swaps as user drills in |
 | [`tree-alpine`](#x-selecttree-alpine) | <img src="docs/images/tree-alpine.png" width="280" alt="tree-alpine"> | — | — | hierarchical list · expand/collapse, roving tabindex |
+| [`rating-alpine`](#x-selectrating-alpine) | <img src="docs/images/rating-alpine.png" width="280" alt="rating-alpine"> | — | — | star rating · role=slider, half-step + clear |
+| [`color-palette-alpine`](#x-selectcolor-palette-alpine) | <img src="docs/images/color-palette-alpine.png" width="280" alt="color-palette-alpine"> | — | — | swatch grid · arrow keys wrap by columns |
+| [`map-pin-alpine`](#x-selectmap-pin-alpine) | <img src="docs/images/map-pin-alpine.png" width="280" alt="map-pin-alpine"> | — | — | click anywhere on a map to drop a pin |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v3.4 highlights · rating + colour palette + map-pin
+
+Three small siblings that round out the form-input family.
+
+- **`rating-alpine`** · star rating with `role="slider"`, optional `:step="0.5"` half-stars, `:allow-zero` clear-to-empty, keyboard ↑/→/↓/←/Home/End. Hover preview without committing.
+- **`color-palette-alpine`** · swatch grid where each item carries `color` (any CSS colour). `:columns` controls the grid, arrow ↑/↓ jump by a whole row, Enter/Space commits. Selected swatch renders inline on the trigger.
+- **`map-pin-alpine`** · same map plumbing as `map-svg-alpine` (`dataset="world"` / `uk` / `uk:<region>` or inline items + viewBox), but click drops a pin at the clicked viewBox coordinate. Uses `SVG.getScreenCTM().inverse()` so the click→pin math survives any CSS scaling. Hidden input emits `"x,y"`.
 
 ### v3.3 highlights · `tree-alpine` (hierarchical select)
 
