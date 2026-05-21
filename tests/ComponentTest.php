@@ -327,6 +327,67 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── date-alpine · calendar grid picker (v3.5) ─────────────────────
+
+test('date-alpine renders role=dialog + role=grid with proper aria', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="dialog"')
+        ->and($tpl)->toContain('role="grid"')
+        ->and($tpl)->toContain('role="gridcell"')
+        ->and($tpl)->toContain('aria-haspopup="dialog"');
+});
+
+test('date-alpine ships month-nav + Page Up/Down + arrow keyboard handlers', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-alpine.blade.php');
+    expect($tpl)
+        ->toContain('@keydown.arrow-right.prevent="moveFocus(1)"')
+        ->and($tpl)->toContain('@keydown.arrow-down.prevent="moveFocus(7)"')
+        ->and($tpl)->toContain('@keydown.page-down.prevent="navMonth(1)"')
+        ->and($tpl)->toContain('@keydown.page-up.prevent="navMonth(-1)"')
+        ->and($tpl)->toContain('@keydown.home.prevent')
+        ->and($tpl)->toContain('@keydown.end.prevent');
+});
+
+test('date-alpine respects min / max via the outOfRange gate', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'min' => null")
+        ->and($tpl)->toContain("'max' => null")
+        ->and($tpl)->toContain('outOfRange(y, m, d)')
+        ->and($tpl)->toContain(":aria-disabled=\"cell.disabled ? 'true' : 'false'\"");
+});
+
+test('date-alpine builds a 6-week grid with prev/next-month padding', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-alpine.blade.php');
+    expect($tpl)
+        ->toContain('weeks()')
+        ->and($tpl)->toContain('while (cells.length < 42)')
+        ->and($tpl)->toContain("'is-other': cell.otherMonth")
+        ->and($tpl)->toContain("'is-today': cell.today");
+});
+
+test('date-alpine uses a native <input type=date> as the no-JS fallback', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-alpine.blade.php');
+    expect($tpl)
+        ->toContain('<input type="date"')
+        ->and($tpl)->toContain('data-lc-date-fallback')
+        // The native input has its name cleared on Alpine boot so the
+        // hidden input is the only one posting.
+        ->and($tpl)->toContain("\$refs.fallback.removeAttribute('name')");
+});
+
+test('styles ship a complete lc-date block with forced-colors fallback', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-date__header', '.lc-date__nav', '.lc-date__title',
+        '.lc-date__grid', '.lc-date__cell', '.lc-date__footer', '.lc-date__action',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+    expect($css)->toMatch('/\.lc-date__cell\.is-selected[\s\S]*background:\s*Highlight/s');
+});
+
 // ─── rating + color-palette + map-pin (v3.4) ───────────────────────
 
 test('rating-alpine uses role=slider with valuemin / valuemax / valuenow', function () {
@@ -985,10 +1046,20 @@ test('styles use system colours under forced-colors mode', function () use ($sty
 
 // ─── progressive enhancement fallback ──────────────────────────────
 
-test('every variant includes the no-JS fallback partial', function () {
+test('every variant ships a no-JS fallback', function () {
     $dir = __DIR__.'/../resources/views/components';
     foreach (glob($dir.'/*.blade.php') as $path) {
+        $name = basename($path, '.blade.php');
         $tpl = file_get_contents($path);
+        // Most variants ship the shared partial · date-alpine emits its
+        // own native <input type=date> fallback (a better SR UX than a
+        // <select> over 365 options), so just assert the noscript anchor.
+        if ($name === 'date-alpine') {
+            expect($tpl)
+                ->toContain('<noscript>')
+                ->and($tpl)->toContain('input type="date"');
+            continue;
+        }
         expect($tpl)->toContain("@include('select::partials.fallback'");
     }
 });
