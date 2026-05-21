@@ -88,6 +88,115 @@
     outline-offset: 1px;
 }
 
+/* Date picker · month-grid calendar in the dropdown menu. */
+.lc-select__menu--date {
+    padding: .75rem;
+}
+.lc-date__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .5rem;
+}
+.lc-date__nav {
+    background: transparent;
+    border: 1px solid var(--lc-border);
+    color: var(--lc-ink);
+    border-radius: var(--lc-radius);
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    font-size: 1rem;
+    display: grid;
+    place-items: center;
+    transition: background 120ms;
+}
+.lc-date__nav:hover { background: var(--lc-hover-bg); }
+.lc-date__nav:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 1px;
+}
+.lc-date__title {
+    font-weight: 600;
+    color: var(--lc-ink);
+    font-size: .95rem;
+}
+.lc-date__grid {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+}
+.lc-date__grid th {
+    text-transform: uppercase;
+    font-size: .7rem;
+    color: var(--lc-ink-dim);
+    font-weight: 500;
+    padding: .35rem 0 .5rem;
+}
+.lc-date__cell {
+    text-align: center;
+    padding: 0;
+    cursor: pointer;
+    height: 2.3rem;
+    font-size: .9rem;
+    color: var(--lc-ink);
+    border-radius: 6px;
+    user-select: none;
+    transition: background 120ms;
+}
+.lc-date__cell.is-other { color: var(--lc-ink-dim); opacity: .55; }
+.lc-date__cell.is-today span {
+    border: 1px solid var(--lc-accent);
+    border-radius: 50%;
+    width: 1.85rem;
+    height: 1.85rem;
+    display: inline-grid;
+    place-items: center;
+}
+.lc-date__cell:hover:not(.is-disabled),
+.lc-date__cell.is-focused:not(.is-disabled) {
+    background: var(--lc-hover-bg);
+}
+.lc-date__cell.is-selected {
+    background: var(--lc-accent);
+    color: white;
+    font-weight: 600;
+}
+.lc-date__cell.is-selected.is-today span { border-color: white; }
+.lc-date__cell.is-disabled {
+    color: var(--lc-ink-dim);
+    opacity: .35;
+    cursor: not-allowed;
+}
+.lc-date__cell:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: -2px;
+}
+.lc-date__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: .5rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--lc-border);
+}
+.lc-date__action {
+    background: transparent;
+    border: 1px solid var(--lc-border);
+    color: var(--lc-ink);
+    border-radius: var(--lc-radius);
+    padding: .35rem .75rem;
+    font-size: .85rem;
+    cursor: pointer;
+}
+.lc-date__action:hover { background: var(--lc-hover-bg); }
+@media (forced-colors: active) {
+    .lc-date__cell.is-selected { background: Highlight; color: HighlightText; }
+    .lc-date__cell.is-today span { border-color: Highlight; }
+    .lc-date__nav, .lc-date__action { border-color: CanvasText; }
+    .lc-date__cell.is-disabled { color: GrayText; }
+}
+
 /* Rating · 5-star (or any max) picker with optional half-step. The track
    acts as the role=slider element; each star is a stack of bg + fg svgs
    so partial-fill (half-star) can clip the fg via clip-path. */

@@ -27,8 +27,29 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | [`rating-alpine`](#x-selectrating-alpine) | <img src="docs/images/rating-alpine.png" width="280" alt="rating-alpine"> | — | — | star rating · role=slider, half-step + clear |
 | [`color-palette-alpine`](#x-selectcolor-palette-alpine) | <img src="docs/images/color-palette-alpine.png" width="280" alt="color-palette-alpine"> | — | — | swatch grid · arrow keys wrap by columns |
 | [`map-pin-alpine`](#x-selectmap-pin-alpine) | <img src="docs/images/map-pin-alpine.png" width="280" alt="map-pin-alpine"> | — | — | click anywhere on a map to drop a pin |
+| [`date-alpine`](#x-selectdate-alpine) | <img src="docs/images/date-alpine.png" width="280" alt="date-alpine"> | — | — | month-grid calendar · WAI grid pattern + min/max |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v3.5 highlights · `date-alpine` (month-grid calendar)
+
+Calendar-grid date picker following the WAI-ARIA grid pattern.
+
+- **`role="dialog"`** menu containing a `role="grid"` table of `role="gridcell"` days · roving tabindex tracks the focused cell.
+- **Keyboard**: ↑/↓/←/→ move by 1 day, Page Up/Down change month, Home/End jump to week start/end, Enter / Space pick. Month nav arrows are buttons in the header.
+- **`:min` / `:max`** prop (ISO `YYYY-MM-DD`) · cells outside the window get `aria-disabled` and are not pickable.
+- **`:first-day-of-week`** (default 1 = Monday) shifts the day-of-week header + column ordering.
+- **No-JS fallback uses native `<input type="date">`** rather than a `<select>` of 365 options · way better screen-reader UX. The Alpine wrapper clears the native input's `name` on boot so the hidden input is the sole poster.
+- **Today + Clear** action buttons in the footer.
+
+```blade
+<x-select::date-alpine
+    name="due_date"
+    selected="2026-05-15"
+    min="2026-01-01"
+    max="2026-12-31"
+    label="Pick a date" />
+```
 
 ### v3.4 highlights · rating + colour palette + map-pin
 
