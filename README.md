@@ -28,8 +28,21 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | [`color-palette-alpine`](#x-selectcolor-palette-alpine) | <img src="docs/images/color-palette-alpine.png" width="280" alt="color-palette-alpine"> | — | — | swatch grid · arrow keys wrap by columns |
 | [`map-pin-alpine`](#x-selectmap-pin-alpine) | <img src="docs/images/map-pin-alpine.png" width="280" alt="map-pin-alpine"> | — | — | click anywhere on a map to drop a pin |
 | [`date-alpine`](#x-selectdate-alpine) | <img src="docs/images/date-alpine.png" width="280" alt="date-alpine"> | — | — | month-grid calendar · WAI grid pattern + min/max |
+| [`time-alpine`](#x-selecttime-alpine) | <img src="docs/images/time-alpine.png" width="280" alt="time-alpine"> | — | — | hh:mm scroll columns + Now/Done · 24h or 12h |
+| [`date-range-alpine`](#x-selectdate-range-alpine) | <img src="docs/images/date-range-alpine.png" width="280" alt="date-range-alpine"> | — | — | start + end picker · in-between shading, auto-swap |
+| [`number-stepper-alpine`](#x-selectnumber-stepper-alpine) | <img src="docs/images/number-stepper-alpine.png" width="280" alt="number-stepper-alpine"> | — | — | ± buttons + slider · role=spinbutton, suffix unit |
+| [`schedule-alpine`](#x-selectschedule-alpine) | <img src="docs/images/schedule-alpine.png" width="280" alt="schedule-alpine"> | — | — | 7-pill day-of-week toggle · posts as `name[]` |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v3.7 highlights · time + date-range + number stepper + schedule
+
+Four siblings of existing variants, no new infrastructure.
+
+- **`time-alpine`** · two scroll columns (hours / minutes) with optional AM/PM third column. `:minute-step` snaps the minute grid; native `<input type="time">` is the no-JS fallback. Now / Done footer actions.
+- **`date-range-alpine`** · extends `date-alpine` to track a start + end. Hover preview shades in-between days, auto-swaps if the user picks the end before the start, posts as two hidden inputs (`{name}_start` + `{name}_end`).
+- **`number-stepper-alpine`** · `role="spinbutton"` with `aria-valuemin/max/now/text`. ± buttons + optional range slider, Page Up/Down × 10, `:suffix` for unit labels. Native `<input type="number">` fallback.
+- **`schedule-alpine`** · 7-pill day-of-week toggle (`Mo Tu We Th Fr Sa Su`). `:first-day-of-week` rotates the start. Posts as `name[]` so a Laravel `request->validate(['feed_days' => 'array'])` just works.
 
 ### v3.6 highlights · R.A.P pass on the v3.0-v3.5 family
 

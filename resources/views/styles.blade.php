@@ -15,7 +15,10 @@
 .lc-multi-grid,
 .lc-multi-list,
 .lc-inline-buttons,
-.lc-cards {
+.lc-cards,
+.lc-schedule,
+.lc-rating,
+.lc-stepper {
     --lc-bg: {!! $theme['bg'] !!};
     --lc-menu-bg: {!! $theme['menu_bg'] !!};
     --lc-border: {!! $theme['border'] !!};
@@ -86,6 +89,181 @@
 .lc-select__clear:focus-visible {
     outline: 2px solid var(--lc-accent);
     outline-offset: 1px;
+}
+
+/* Number stepper · ± buttons + value + optional range slider. */
+.lc-stepper {
+    --lc-stepper-bg: var(--lc-bg, #25272A);
+    --lc-stepper-border: var(--lc-border, #3A3D40);
+    --lc-stepper-ink: var(--lc-ink, #F0EDE5);
+    --lc-stepper-accent: var(--lc-accent, #C7593A);
+    display: inline-block;
+    color: var(--lc-stepper-ink);
+}
+.lc-stepper__row {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--lc-stepper-border);
+    border-radius: var(--lc-radius, .5rem);
+    overflow: hidden;
+    background: var(--lc-stepper-bg);
+}
+.lc-stepper__row:focus-visible {
+    outline: 2px solid var(--lc-stepper-accent);
+    outline-offset: 2px;
+}
+.lc-stepper__btn {
+    background: transparent;
+    border: 0;
+    color: var(--lc-stepper-ink);
+    width: 2.25rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 120ms;
+}
+.lc-stepper__btn:hover:not(:disabled) { background: var(--lc-hover-bg, #3A3D40); }
+.lc-stepper__btn:disabled { opacity: .4; cursor: not-allowed; }
+.lc-stepper__value {
+    padding: .35rem .75rem;
+    min-width: 4rem;
+    text-align: center;
+    border-left: 1px solid var(--lc-stepper-border);
+    border-right: 1px solid var(--lc-stepper-border);
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: .35rem;
+}
+.lc-stepper__suffix { color: var(--lc-ink-dim); font-size: .85rem; }
+.lc-stepper__slider {
+    display: block;
+    width: 100%;
+    margin-top: .5rem;
+    accent-color: var(--lc-stepper-accent);
+}
+.lc-stepper--error .lc-stepper__row { box-shadow: 0 0 0 2px #ef4444; }
+@media (forced-colors: active) {
+    .lc-stepper__btn:disabled { color: GrayText; }
+}
+
+/* Schedule · 7-pill day-of-week toggle. */
+.lc-schedule__row {
+    display: inline-flex;
+    gap: .25rem;
+}
+.lc-schedule__pill {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    color: var(--lc-ink);
+    border-radius: 999px;
+    padding: .35rem .65rem;
+    font-size: .8rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 120ms, color 120ms;
+    min-width: 2.5rem;
+}
+.lc-schedule__pill:hover:not(:disabled) { background: var(--lc-hover-bg); }
+.lc-schedule__pill.is-on {
+    background: var(--lc-accent);
+    border-color: var(--lc-accent);
+    color: white;
+}
+.lc-schedule__pill:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+}
+.lc-schedule__pill:disabled { opacity: .4; cursor: not-allowed; }
+@media (forced-colors: active) {
+    .lc-schedule__pill.is-on { background: Highlight; color: HighlightText; border-color: Highlight; }
+}
+
+/* Time picker · two scroll columns. The active row is the one rendered
+   highlighted; scroll-snap centres the row on touch+mouse-wheel input. */
+.lc-select__menu--time { padding: .75rem; min-width: 16rem; }
+.lc-time__cols {
+    display: flex;
+    align-items: stretch;
+    gap: .25rem;
+    height: 14rem;
+    border-top: 1px solid var(--lc-border);
+    border-bottom: 1px solid var(--lc-border);
+    padding: .5rem 0;
+    position: relative;
+}
+.lc-time__col {
+    flex: 1;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    text-align: center;
+    scroll-behavior: smooth;
+    padding: 5rem 0;  /* lets the centred row sit mid-column */
+    scrollbar-width: thin;
+}
+.lc-time__col::-webkit-scrollbar { width: 4px; }
+.lc-time__col::-webkit-scrollbar-thumb { background: var(--lc-border); border-radius: 999px; }
+.lc-time__col--ampm { padding: 5rem 0; }
+.lc-time__cell {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    color: var(--lc-ink-dim);
+    font: inherit;
+    font-size: 1.05rem;
+    padding: .35rem 0;
+    cursor: pointer;
+    scroll-snap-align: center;
+}
+.lc-time__cell:hover { color: var(--lc-ink); }
+.lc-time__cell.is-active {
+    color: var(--lc-ink);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--lc-accent) 25%, transparent);
+    border-radius: 6px;
+}
+.lc-time__colon {
+    align-self: center;
+    font-size: 1.4rem;
+    color: var(--lc-ink-dim);
+    padding: 0 .25rem;
+}
+.lc-time__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: .5rem;
+}
+@media (forced-colors: active) {
+    .lc-time__cell.is-active { background: Highlight; color: HighlightText; }
+}
+
+/* Date-range · adds start/end + in-between shading on top of the date
+   picker styles. */
+.lc-date__mode {
+    text-align: center;
+    color: var(--lc-ink-dim);
+    font-size: .8rem;
+    margin: 0 0 .35rem;
+}
+.lc-date__cell.is-start,
+.lc-date__cell.is-end {
+    background: var(--lc-accent);
+    color: white;
+    font-weight: 600;
+}
+.lc-date__cell.is-in-range {
+    background: color-mix(in srgb, var(--lc-accent) 22%, transparent);
+    border-radius: 0;
+}
+.lc-date__cell.is-start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.lc-date__cell.is-end   { border-top-left-radius: 0;  border-bottom-left-radius: 0;  }
+@media (forced-colors: active) {
+    .lc-date__cell.is-start,
+    .lc-date__cell.is-end { background: Highlight; color: HighlightText; }
+    .lc-date__cell.is-in-range { background: HighlightText; color: Highlight; }
 }
 
 /* Date picker · month-grid calendar in the dropdown menu. */
