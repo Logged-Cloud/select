@@ -453,10 +453,36 @@
     text-align: center;
     scroll-behavior: smooth;
     padding: 5rem 0;  /* lets the centred row sit mid-column */
-    scrollbar-width: thin;
+    /* Hide the scrollbar entirely · the snap-aligned highlighted row is the
+       only position indicator the user needs and a visible scrollbar
+       clashes with the iOS-style column aesthetic. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    position: relative;
 }
-.lc-time__col::-webkit-scrollbar { width: 4px; }
-.lc-time__col::-webkit-scrollbar-thumb { background: var(--lc-border); border-radius: 999px; }
+.lc-time__col::-webkit-scrollbar { display: none; }
+/* A faint top/bottom mask softens the items above/below the active row so
+   the centre always reads as the "selected" position. */
+.lc-time__col {
+    mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 75%, transparent);
+}
+/* The visible "selection rail" · sits at the column centre and highlights
+   whichever cell is snap-aligned there. Implemented via a sibling pseudo
+   so it doesn't interfere with the scroll target. */
+.lc-time__cols::before {
+    content: '';
+    position: absolute;
+    left: .25rem;
+    right: .25rem;
+    top: 50%;
+    height: 2.1rem;
+    transform: translateY(-50%);
+    background: color-mix(in srgb, var(--lc-accent) 12%, transparent);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 0;
+}
 .lc-time__col--ampm { padding: 5rem 0; }
 .lc-time__cell {
     display: block;
