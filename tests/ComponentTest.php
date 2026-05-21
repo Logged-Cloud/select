@@ -327,6 +327,103 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── likert / sortable / swipe / cascading / image-region (v3.8) ───
+
+test('likert-alpine is a role=radiogroup with arrow + Home/End keyboard nav', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/likert-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="radiogroup"')
+        ->and($tpl)->toContain('role="radio"')
+        ->and($tpl)->toContain('@keydown.arrow-right.prevent="moveBy(1)"')
+        ->and($tpl)->toContain('@keydown.home.prevent="pick(points[0])"');
+});
+
+test('likert-alpine scale gives NPS-style 0..N when scale >= 10', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/likert-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'scale' => 5")
+        // start=0 for 10+ scales (NPS), start=1 for 5/7 (agreement).
+        ->and($tpl)->toContain('$start = $scale >= 10 ? 0 : 1');
+});
+
+test('sortable-rank-alpine emits ordered name[] hidden inputs', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/sortable-rank-alpine.blade.php');
+    expect($tpl)
+        ->toContain('draggable="true"')
+        ->and($tpl)->toContain('@dragstart="onDragStart')
+        ->and($tpl)->toContain('@dragover.prevent="onDragOver')
+        ->and($tpl)->toContain("'[]'");
+});
+
+test('sortable-rank-alpine ships ↑/↓ buttons + alt-arrow keyboard reorder', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/sortable-rank-alpine.blade.php');
+    expect($tpl)
+        ->toContain('moveBy(idx, -1)')
+        ->and($tpl)->toContain('moveBy(idx, 1)')
+        ->and($tpl)->toContain('@keydown.alt.arrow-up.prevent="moveBy(idx, -1)"');
+});
+
+test('swipe-deck-alpine uses pointer events + a per-card threshold', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/swipe-deck-alpine.blade.php');
+    expect($tpl)
+        ->toContain('@pointerdown="if (cursor ===')
+        ->and($tpl)->toContain("'threshold' => 80")
+        ->and($tpl)->toContain('history.push(')
+        // Undo rewinds the cursor + pops the accepted key.
+        ->and($tpl)->toContain('const last = this.history.pop()');
+});
+
+test('swipe-deck-alpine also supports keyboard accept/skip/undo', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/swipe-deck-alpine.blade.php');
+    expect($tpl)
+        ->toContain('@keydown.arrow-right.prevent="if (cursor ===')
+        ->and($tpl)->toContain('@keydown.arrow-left.prevent="if (cursor ===')
+        ->and($tpl)->toContain('@keydown.backspace.prevent="undo()"');
+});
+
+test('cascading-columns-alpine builds columns from a child-map + path', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/cascading-columns-alpine.blade.php');
+    expect($tpl)
+        ->toContain('this._childMap = new Map()')
+        ->and($tpl)->toContain('get columns()')
+        ->and($tpl)->toContain('onRight(col, idx)')
+        ->and($tpl)->toContain('onLeft(col)')
+        ->and($tpl)->toContain('_expandPathTo(targetIdx)');
+});
+
+test('cascading-columns flattens the recursive items shape (parent pointers)', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/cascading-columns-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'parent' => \$parentIdx")
+        ->and($tpl)->toContain('$normalise = function ($items, $depth, $parentIdx, &$flat)');
+});
+
+test('image-region-alpine renders an <image> background + clickable <path>s', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/image-region-alpine.blade.php');
+    expect($tpl)
+        ->toContain('<image href=')
+        ->and($tpl)->toContain('class="lc-image-region__item"')
+        ->and($tpl)->toContain('@click="pickAt({{ $i }})"')
+        ->and($tpl)->toContain('lc-image-region--no-outline');
+});
+
+test('styles ship complete blocks for the v3.8 family', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-likert', '.lc-likert__pip', '.lc-likert__row',
+        '.lc-rank', '.lc-rank__row', '.lc-rank__handle', '.lc-rank__btn',
+        '.lc-deck__stage', '.lc-deck__card', '.lc-deck__btn',
+        '.lc-cascade__columns', '.lc-cascade__col', '.lc-cascade__row',
+        '.lc-image-region', '.lc-image-region__item',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+    // All four new wrappers must be in the CSS-variable host list.
+    foreach (['.lc-likert,', '.lc-rank,', '.lc-deck,', '.lc-cascade {'] as $hook) {
+        expect($css)->toContain($hook);
+    }
+});
+
 // ─── time / date-range / number-stepper / schedule (v3.7) ──────────
 
 test('time-alpine renders two column listboxes + AM/PM toggle hook', function () {

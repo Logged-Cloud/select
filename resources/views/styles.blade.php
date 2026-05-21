@@ -18,7 +18,11 @@
 .lc-cards,
 .lc-schedule,
 .lc-rating,
-.lc-stepper {
+.lc-stepper,
+.lc-likert,
+.lc-rank,
+.lc-deck,
+.lc-cascade {
     --lc-bg: {!! $theme['bg'] !!};
     --lc-menu-bg: {!! $theme['menu_bg'] !!};
     --lc-border: {!! $theme['border'] !!};
@@ -89,6 +93,245 @@
 .lc-select__clear:focus-visible {
     outline: 2px solid var(--lc-accent);
     outline-offset: 1px;
+}
+
+/* Likert / NPS scale · row of numbered pips, role=radiogroup. */
+.lc-likert { display: inline-block; color: var(--lc-ink); }
+.lc-likert__endpoints {
+    display: flex;
+    justify-content: space-between;
+    color: var(--lc-ink-dim);
+    font-size: .8rem;
+    margin-bottom: .35rem;
+}
+.lc-likert__endpoint { max-width: 45%; }
+.lc-likert__row { display: inline-flex; gap: .25rem; }
+.lc-likert__pip {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    color: var(--lc-ink);
+    border-radius: 50%;
+    width: 2.2rem;
+    height: 2.2rem;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 120ms, transform 120ms;
+}
+.lc-likert__pip:hover { background: var(--lc-hover-bg); transform: scale(1.05); }
+.lc-likert__pip.is-selected {
+    background: var(--lc-accent);
+    border-color: var(--lc-accent);
+    color: white;
+}
+.lc-likert__pip:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: 2px;
+}
+@media (forced-colors: active) {
+    .lc-likert__pip.is-selected { background: Highlight; color: HighlightText; border-color: Highlight; }
+}
+
+/* Sortable / rank list · drag rows to reorder. */
+.lc-rank__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    counter-reset: rank;
+}
+.lc-rank__row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .55rem .75rem;
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    color: var(--lc-ink);
+    cursor: grab;
+    transition: background 120ms, border-color 120ms;
+}
+.lc-rank__row.is-dragging { opacity: .4; cursor: grabbing; }
+.lc-rank__row.is-over { border-color: var(--lc-accent); }
+.lc-rank__row:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: 2px; }
+.lc-rank__handle { color: var(--lc-ink-dim); cursor: grab; display: inline-grid; place-items: center; }
+.lc-rank__index {
+    font-variant-numeric: tabular-nums;
+    color: var(--lc-ink-dim);
+    font-weight: 600;
+    min-width: 1.5rem;
+    text-align: right;
+}
+.lc-rank__title { flex: 1; }
+.lc-rank__nudge { display: inline-flex; gap: .15rem; }
+.lc-rank__btn {
+    background: transparent;
+    border: 1px solid var(--lc-border);
+    color: var(--lc-ink);
+    border-radius: 6px;
+    width: 1.75rem;
+    height: 1.75rem;
+    cursor: pointer;
+    line-height: 1;
+}
+.lc-rank__btn:hover:not(:disabled) { background: var(--lc-hover-bg); }
+.lc-rank__btn:disabled { opacity: .35; cursor: not-allowed; }
+@media (forced-colors: active) {
+    .lc-rank__row.is-over { border-color: Highlight; }
+}
+
+/* Swipe deck · stack of cards with a top card the user drags or buttons through. */
+.lc-deck__stage {
+    position: relative;
+    width: 100%;
+    max-width: 22rem;
+    aspect-ratio: 3 / 4;
+    margin: 0 auto;
+    perspective: 1000px;
+}
+.lc-deck__card {
+    position: absolute;
+    inset: 0;
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: calc(var(--lc-radius) + .25rem);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 12px 24px rgba(0,0,0,.35);
+    user-select: none;
+    touch-action: none;
+    transition: transform 250ms, opacity 250ms;
+    color: var(--lc-ink);
+}
+.lc-deck__card.is-top { z-index: 3; cursor: grab; }
+.lc-deck__card.is-next  { z-index: 2; transform: translateY(8px) scale(.97); opacity: .9; }
+.lc-deck__card.is-after { z-index: 1; transform: translateY(16px) scale(.94); opacity: .75; }
+.lc-deck__card.is-top:active { cursor: grabbing; }
+.lc-deck__card.is-gone-right { transform: translateX(140%) rotate(20deg); opacity: 0; }
+.lc-deck__card.is-gone-left  { transform: translateX(-140%) rotate(-20deg); opacity: 0; }
+.lc-deck__card:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: 2px; }
+.lc-deck__image {
+    max-width: 100%;
+    max-height: 60%;
+    border-radius: var(--lc-radius);
+    object-fit: cover;
+    margin-bottom: 1rem;
+}
+.lc-deck__icon { color: var(--lc-accent); margin-bottom: 1rem; }
+.lc-deck__title { font-size: 1.25rem; font-weight: 600; margin: .25rem 0; }
+.lc-deck__subtitle { color: var(--lc-ink-dim); font-size: .9rem; margin: 0; }
+.lc-deck__done {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--lc-ink-dim);
+    z-index: 0;
+}
+.lc-deck__controls {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+.lc-deck__btn {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    color: var(--lc-ink);
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: transform 120ms;
+}
+.lc-deck__btn:hover:not(:disabled) { transform: scale(1.08); }
+.lc-deck__btn:disabled { opacity: .35; cursor: not-allowed; }
+.lc-deck__btn--accept { color: #22c55e; }
+.lc-deck__btn--skip   { color: #ef4444; }
+.lc-deck__btn--undo   { color: var(--lc-ink-dim); }
+@media (forced-colors: active) {
+    .lc-deck__btn { border-color: CanvasText; }
+}
+
+/* Cascading columns · Finder-style click-into-children layout. */
+.lc-cascade__columns {
+    display: grid;
+    grid-template-columns: repeat(var(--lc-cascade-cols, 2), 1fr);
+    gap: .35rem;
+    border: 1px solid var(--lc-border);
+    border-radius: var(--lc-radius);
+    overflow: hidden;
+    background: var(--lc-bg);
+    min-height: 14rem;
+}
+.lc-cascade__col {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-right: 1px solid var(--lc-border);
+    overflow-y: auto;
+    max-height: 18rem;
+}
+.lc-cascade__col:last-child { border-right: 0; }
+.lc-cascade__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .45rem .65rem;
+    cursor: pointer;
+    color: var(--lc-ink);
+    transition: background 120ms;
+}
+.lc-cascade__row:hover { background: var(--lc-hover-bg); }
+.lc-cascade__row.is-on-path { background: color-mix(in srgb, var(--lc-accent) 18%, transparent); }
+.lc-cascade__row.is-selected { background: var(--lc-accent); color: white; font-weight: 600; }
+.lc-cascade__row:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: -2px; }
+.lc-cascade__chev { color: var(--lc-ink-dim); }
+.lc-cascade__row.is-selected .lc-cascade__chev { color: white; }
+@media (forced-colors: active) {
+    .lc-cascade__row.is-selected { background: Highlight; color: HighlightText; }
+}
+
+/* Image-region · click any region of a background image. */
+.lc-image-region {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 60vh;
+    background: color-mix(in srgb, var(--lc-ink) 4%, transparent);
+    border-radius: calc(var(--lc-radius) - .1rem);
+}
+.lc-image-region__item {
+    fill: transparent;
+    stroke: var(--lc-accent);
+    stroke-width: 1;
+    stroke-opacity: .35;
+    cursor: pointer;
+    transition: fill 120ms, stroke-opacity 120ms;
+}
+.lc-image-region--no-outline .lc-image-region__item { stroke-opacity: 0; }
+.lc-image-region__item:hover,
+.lc-image-region__item.is-active {
+    fill: color-mix(in srgb, var(--lc-accent) 25%, transparent);
+    stroke-opacity: 1;
+}
+.lc-image-region__item.is-selected {
+    fill: color-mix(in srgb, var(--lc-accent) 45%, transparent);
+    stroke-opacity: 1;
+    stroke-width: 2;
+}
+@media (forced-colors: active) {
+    .lc-image-region__item.is-selected { fill: Highlight; stroke: HighlightText; }
 }
 
 /* Number stepper · ± buttons + value + optional range slider. */
