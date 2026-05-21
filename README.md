@@ -32,8 +32,23 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 | [`date-range-alpine`](#x-selectdate-range-alpine) | <img src="docs/images/date-range-alpine.png" width="280" alt="date-range-alpine"> | — | — | start + end picker · in-between shading, auto-swap |
 | [`number-stepper-alpine`](#x-selectnumber-stepper-alpine) | <img src="docs/images/number-stepper-alpine.png" width="280" alt="number-stepper-alpine"> | — | — | ± buttons + slider · role=spinbutton, suffix unit |
 | [`schedule-alpine`](#x-selectschedule-alpine) | <img src="docs/images/schedule-alpine.png" width="280" alt="schedule-alpine"> | — | — | 7-pill day-of-week toggle · posts as `name[]` |
+| [`likert-alpine`](#x-selectlikert-alpine) | <img src="docs/images/likert-alpine.png" width="280" alt="likert-alpine"> | — | — | 5/7/10-point survey scale · NPS-friendly |
+| [`sortable-rank-alpine`](#x-selectsortable-rank-alpine) | <img src="docs/images/sortable-rank-alpine.png" width="280" alt="sortable-rank-alpine"> | — | — | drag rows to reorder · captures rank |
+| [`swipe-deck-alpine`](#x-selectswipe-deck-alpine) | <img src="docs/images/swipe-deck-alpine.png" width="280" alt="swipe-deck-alpine"> | — | — | Tinder-style accept/skip/undo card deck |
+| [`cascading-columns-alpine`](#x-selectcascading-columns-alpine) | <img src="docs/images/cascading-columns-alpine.png" width="280" alt="cascading-columns-alpine"> | — | — | Finder-style click-into-children columns |
+| [`image-region-alpine`](#x-selectimage-region-alpine) | <img src="docs/images/image-region-alpine.png" width="280" alt="image-region-alpine"> | — | — | clickable hit regions over any background image |
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
+
+### v3.8 highlights · five new selection paradigms
+
+Five variants that introduce genuinely new selection mechanics, not just visual variants of a list.
+
+- **`likert-alpine`** · 5/7/10-point survey scale with `role="radiogroup"`. `:scale="10"` switches to NPS-style 0-10; `:min-label` / `:max-label` for endpoint annotations.
+- **`sortable-rank-alpine`** · drag rows to reorder. Captures *order*, not just selection. Posts as `name[]` in the user-set order. Touch-friendly drag handles + ↑/↓ buttons + `Alt+↑/↓` keyboard reorder for users who can't drag.
+- **`swipe-deck-alpine`** · Tinder-style. One card at a time; swipe right to accept (added to picks), swipe left to skip, swipe down on a button to undo. Pointer events (mouse + touch + pen), `:threshold` controls the commit distance, keyboard `→` / `←` / `Backspace`.
+- **`cascading-columns-alpine`** · macOS Finder-style. Click in column 1 → its children render in column 2 → click again → column 3. Same recursive `items` shape as `tree-alpine`; better UX when the hierarchy is wide-but-shallow rather than deep.
+- **`image-region-alpine`** · clickable hit regions on any background image (not just a map). Items carry an SVG `path` describing the region; selected region fills with the accent. `:show-outlines="false"` hides the region outlines so only hover reveals them.
 
 ### v3.7 highlights · time + date-range + number stepper + schedule
 
