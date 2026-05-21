@@ -327,6 +327,86 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── time / date-range / number-stepper / schedule (v3.7) ──────────
+
+test('time-alpine renders two column listboxes + AM/PM toggle hook', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/time-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="dialog"')
+        ->and($tpl)->toContain('role="listbox"')
+        ->and($tpl)->toContain("'minuteStep' => 5")
+        ->and($tpl)->toContain("'use24h' => true")
+        // Native <input type=time> as the no-JS fallback.
+        ->and($tpl)->toContain('input type="time"');
+});
+
+test('time-alpine minute setter snaps to the configured step', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/time-alpine.blade.php');
+    expect($tpl)->toContain('Math.round(m / this.minuteStep) * this.minuteStep');
+});
+
+test('date-range-alpine emits _start + _end hidden inputs and shades in-range', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-range-alpine.blade.php');
+    expect($tpl)
+        ->toContain('name="{{ $name }}_start"')
+        ->and($tpl)->toContain('name="{{ $name }}_end"')
+        ->and($tpl)->toContain("'is-start': cell.iso === startValue")
+        ->and($tpl)->toContain("'is-end': cell.iso === endValue")
+        ->and($tpl)->toContain("'is-in-range': inRange(cell.iso)");
+});
+
+test('date-range-alpine auto-swaps when end is picked before start', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-range-alpine.blade.php');
+    expect($tpl)
+        ->toContain('if (iso < this.startValue)')
+        ->and($tpl)->toContain('this.endValue = this.startValue');
+});
+
+test('number-stepper-alpine uses role=spinbutton with keyboard handlers', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/number-stepper-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="spinbutton"')
+        ->and($tpl)->toContain(':aria-valuemin="min"')
+        ->and($tpl)->toContain(':aria-valuemax="max"')
+        ->and($tpl)->toContain(':aria-valuenow="value"')
+        ->and($tpl)->toContain('@keydown.page-up.prevent="bump(step*10)"')
+        ->and($tpl)->toContain('@keydown.home.prevent="set(min)"');
+});
+
+test('number-stepper-alpine ships a native <input type=number> fallback', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/number-stepper-alpine.blade.php');
+    expect($tpl)
+        ->toContain('<noscript>')
+        ->and($tpl)->toContain('input type="number"');
+});
+
+test('schedule-alpine has 7 day pills with aria-pressed toggle semantics', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/schedule-alpine.blade.php');
+    expect($tpl)
+        ->toContain('class="lc-schedule__pill"')
+        ->and($tpl)->toContain(":aria-pressed=\"isOn")
+        // Form posts as name[] · matches multi-grid / multi-list pattern.
+        ->and($tpl)->toContain("'[]'");
+});
+
+test('styles ship complete blocks for stepper / schedule / time / date-range', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-stepper', '.lc-stepper__btn', '.lc-stepper__value', '.lc-stepper__slider',
+        '.lc-schedule', '.lc-schedule__pill',
+        '.lc-time__cols', '.lc-time__col', '.lc-time__cell', '.lc-time__colon',
+        '.lc-date__mode', '.lc-date__cell.is-start', '.lc-date__cell.is-in-range',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+    // CSS variable scope was the bug that left schedule pills unstyled · the
+    // host selector list must include the new wrappers.
+    expect($css)
+        ->toContain('.lc-schedule,')
+        ->and($css)->toContain('.lc-rating,')
+        ->and($css)->toContain('.lc-stepper {');
+});
+
 // ─── R.A.P pass on v3.0-v3.5 (v3.6) ────────────────────────────────
 
 test('color-palette uses a luminance guard so the checkmark stays visible', function () {
@@ -1118,16 +1198,22 @@ test('styles use system colours under forced-colors mode', function () use ($sty
 
 test('every variant ships a no-JS fallback', function () {
     $dir = __DIR__.'/../resources/views/components';
+    // Variants whose native fallback uses an input type rather than a
+    // <select> · they get a noscript-gated native input instead of the
+    // shared partial. The map of expected input types per variant:
+    $nativeInputFallbacks = [
+        'date-alpine' => 'date',
+        'date-range-alpine' => 'date',
+        'time-alpine' => 'time',
+        'number-stepper-alpine' => 'number',
+    ];
     foreach (glob($dir.'/*.blade.php') as $path) {
         $name = basename($path, '.blade.php');
         $tpl = file_get_contents($path);
-        // Most variants ship the shared partial · date-alpine emits its
-        // own native <input type=date> fallback (a better SR UX than a
-        // <select> over 365 options), so just assert the noscript anchor.
-        if ($name === 'date-alpine') {
+        if (isset($nativeInputFallbacks[$name])) {
             expect($tpl)
                 ->toContain('<noscript>')
-                ->and($tpl)->toContain('input type="date"');
+                ->and($tpl)->toContain('input type="'.$nativeInputFallbacks[$name].'"');
             continue;
         }
         expect($tpl)->toContain("@include('select::partials.fallback'");
