@@ -40,195 +40,30 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
-### v3.9 highlights · R.A.P pass on the v3.8 family
+## Release notes
 
-- **Robust** · swipe-deck pointer-capture cleans up + guards against a stale cursor (if the user advances via keyboard mid-drag, the dragged card no longer animates back from stale state); cascading-columns guards against an empty `rootIdxs` so an empty `items` array doesn't crash the init.
-- **Accessible** · cascading-columns announces column-opens on the live region ("Opened Animals: 2 items"); sortable-rank announces drag-over reorders ("Feeding at position 3") so screen-reader users tracking a drag hear where it lands; image-region gains arrow / Home / End / Enter keyboard navigation (was mouse-only).
-- **Performance** · sortable-rank handle gains `touch-action: none` so mobile drag actually starts the drag rather than scrolling the page. swipe-deck's `x-show` band already capped the render to 3 cards — confirmed via the gone-band rule (`cursor - 1` only).
+The package is on `v3.9`. Highlights, oldest → newest:
 
-### v3.8 highlights · five new selection paradigms
+- **v2.0–v2.3** · core dropdown family (`searchable`, `multi`, `radio-grid`, `radio-list`, `multi-grid`, `multi-list`, `inline-buttons`, `card-single`, `card-multi`).
+- **v2.4** · mobile bottom-sheet, × clear button, `error=""` prop, `tags-alpine` variant.
+- **v2.5** · token-aware search ranking + `<mark>` match highlight.
+- **v2.6** · debounced `search-url` for remote search, `AbortController`-cancel for stale fetches.
+- **v2.7** · R.A.P pass — inline error row, cancel-on-close, tags trim/dedup, accessible-name fallback, `<span>`-not-`<mark>`.
+- **v2.8** · memoised filter pipeline + `:render-limit` cap with "showing N of M" footer.
+- **v2.9** · final R.A.P round — retry-once on transient 5xx, body-scroll lock on mobile sheet, live-region throttle, collision-proof `lcSafeId`, per-items lowercase WeakMap.
+- **v2.10** · card pagination + `:depends-on` parent gating (with `parent` field scoping + `&parent=` URL augmentation).
+- **v2.11** · R.A.P on v2.10 — card pager moved outside `role="radiogroup"`, focus follows pager click into the new page, `destroy()` cleanup hook for depends-on listener, live-region announces auto-clear.
+- **v3.0** · `map-svg-alpine` + bundled world / UK data (`MapData::world()` / `::uk()` / `::ukTowns()`).
+- **v3.1** · UK becomes clickable region polygons (not dots); per-region drilldown datasets.
+- **v3.2** · `map-drilldown-alpine` (single trigger, menu swaps as user drills in).
+- **v3.3** · `tree-alpine` (recursive children, WAI-ARIA tree, expand/collapse).
+- **v3.4** · `rating-alpine` + `color-palette-alpine` + `map-pin-alpine`.
+- **v3.5** · `date-alpine` (month-grid calendar, native `<input type=date>` fallback).
+- **v3.6** · R.A.P on v3.0-v3.5 — color contrast guard, date arrow-skip-disabled + year-jump, map-pin keyboard placement, rating singular/plural, tree `_parentOf` memo.
+- **v3.7** · `time-alpine` + `date-range-alpine` + `number-stepper-alpine` + `schedule-alpine`.
+- **v3.8** · `likert-alpine` + `sortable-rank-alpine` + `swipe-deck-alpine` + `cascading-columns-alpine` + `image-region-alpine`.
+- **v3.9** · R.A.P on v3.8 — swipe stale-cursor guard + capture release, cascading column-open announce, sortable drag-over announce, image-region keyboard nav, sortable handle `touch-action: none`.
 
-Five variants that introduce genuinely new selection mechanics, not just visual variants of a list.
-
-- **`likert-alpine`** · 5/7/10-point survey scale with `role="radiogroup"`. `:scale="10"` switches to NPS-style 0-10; `:min-label` / `:max-label` for endpoint annotations.
-- **`sortable-rank-alpine`** · drag rows to reorder. Captures *order*, not just selection. Posts as `name[]` in the user-set order. Touch-friendly drag handles + ↑/↓ buttons + `Alt+↑/↓` keyboard reorder for users who can't drag.
-- **`swipe-deck-alpine`** · Tinder-style. One card at a time; swipe right to accept (added to picks), swipe left to skip, swipe down on a button to undo. Pointer events (mouse + touch + pen), `:threshold` controls the commit distance, keyboard `→` / `←` / `Backspace`.
-- **`cascading-columns-alpine`** · macOS Finder-style. Click in column 1 → its children render in column 2 → click again → column 3. Same recursive `items` shape as `tree-alpine`; better UX when the hierarchy is wide-but-shallow rather than deep.
-- **`image-region-alpine`** · clickable hit regions on any background image (not just a map). Items carry an SVG `path` describing the region; selected region fills with the accent. `:show-outlines="false"` hides the region outlines so only hover reveals them.
-
-### v3.7 highlights · time + date-range + number stepper + schedule
-
-Four siblings of existing variants, no new infrastructure.
-
-- **`time-alpine`** · two scroll columns (hours / minutes) with optional AM/PM third column. `:minute-step` snaps the minute grid; native `<input type="time">` is the no-JS fallback. Now / Done footer actions.
-- **`date-range-alpine`** · extends `date-alpine` to track a start + end. Hover preview shades in-between days, auto-swaps if the user picks the end before the start, posts as two hidden inputs (`{name}_start` + `{name}_end`).
-- **`number-stepper-alpine`** · `role="spinbutton"` with `aria-valuemin/max/now/text`. ± buttons + optional range slider, Page Up/Down × 10, `:suffix` for unit labels. Native `<input type="number">` fallback.
-- **`schedule-alpine`** · 7-pill day-of-week toggle (`Mo Tu We Th Fr Sa Su`). `:first-day-of-week` rotates the start. Posts as `name[]` so a Laravel `request->validate(['feed_days' => 'array'])` just works.
-
-### v3.6 highlights · R.A.P pass on the v3.0-v3.5 family
-
-- **Robust** · color-palette uses ITU-R BT.709 luminance to flip the checkmark to dark on light swatches (white-check-on-white was invisible); date picker's arrow nav now skips disabled cells in the same direction so the focus never lands on something the user can't pick.
-- **Accessible** · map-pin gains full keyboard placement via a ghost cursor (arrow keys move, Shift jumps 10×, Enter commits, Delete clears) — the SVG is now `tabindex=0` with a focus ring; rating's `aria-valuetext` uses singular `1 star` vs plural; date picker adds `«` / `»` year-jump buttons in the header and Shift-Page Up/Down for keyboard year-jump.
-- **Performance** · tree picker pre-computes a `_parentOf[]` map at init so `isVisible()` is O(depth) hash lookups instead of an O(N) backwards scan per node per render.
-
-### v3.5 highlights · `date-alpine` (month-grid calendar)
-
-Calendar-grid date picker following the WAI-ARIA grid pattern.
-
-- **`role="dialog"`** menu containing a `role="grid"` table of `role="gridcell"` days · roving tabindex tracks the focused cell.
-- **Keyboard**: ↑/↓/←/→ move by 1 day, Page Up/Down change month, Home/End jump to week start/end, Enter / Space pick. Month nav arrows are buttons in the header.
-- **`:min` / `:max`** prop (ISO `YYYY-MM-DD`) · cells outside the window get `aria-disabled` and are not pickable.
-- **`:first-day-of-week`** (default 1 = Monday) shifts the day-of-week header + column ordering.
-- **No-JS fallback uses native `<input type="date">`** rather than a `<select>` of 365 options · way better screen-reader UX. The Alpine wrapper clears the native input's `name` on boot so the hidden input is the sole poster.
-- **Today + Clear** action buttons in the footer.
-
-```blade
-<x-select::date-alpine
-    name="due_date"
-    selected="2026-05-15"
-    min="2026-01-01"
-    max="2026-12-31"
-    label="Pick a date" />
-```
-
-### v3.4 highlights · rating + colour palette + map-pin
-
-Three small siblings that round out the form-input family.
-
-- **`rating-alpine`** · star rating with `role="slider"`, optional `:step="0.5"` half-stars, `:allow-zero` clear-to-empty, keyboard ↑/→/↓/←/Home/End. Hover preview without committing.
-- **`color-palette-alpine`** · swatch grid where each item carries `color` (any CSS colour). `:columns` controls the grid, arrow ↑/↓ jump by a whole row, Enter/Space commits. Selected swatch renders inline on the trigger.
-- **`map-pin-alpine`** · same map plumbing as `map-svg-alpine` (`dataset="world"` / `uk` / `uk:<region>` or inline items + viewBox), but click drops a pin at the clicked viewBox coordinate. Uses `SVG.getScreenCTM().inverse()` so the click→pin math survives any CSS scaling. Hidden input emits `"x,y"`.
-
-### v3.3 highlights · `tree-alpine` (hierarchical select)
-
-- **New variant `tree-alpine`** · items can carry `children` recursively to build any depth of hierarchy. Each branch row gets a twisty button; clicking expands/collapses, clicking a leaf picks it.
-- **WAI-ARIA `tree` / `treeitem`** with `aria-level`, `aria-expanded`, `aria-selected`. Arrow Down/Up moves through visible rows, Arrow Right expands a collapsed branch (or moves to first child), Arrow Left collapses an expanded branch (or moves to parent), Home/End jump to ends, Enter / Space picks (or toggles a branch when `leaves-only`).
-- **Re-opening restores ancestors** of the previously-picked leaf so the user lands on what they chose.
-- **`:expanded-depth`** prop auto-expands the first N depths so the tree opens already showing structure rather than as one collapsed root.
-- **`:leaves-only`** (default `true`) restricts picks to leaf nodes. Set `false` to allow picking a branch too.
-
-```blade
-<x-select::tree-alpine
-    name="taxonomy"
-    :items="$tree"
-    label="Pick an item"
-    :expanded-depth="1" />
-
-{{-- items shape: --}}
-[
-    ['key' => 'animals', 'title' => 'Animals', 'children' => [
-        ['key' => 'reptiles', 'title' => 'Reptiles', 'children' => [
-            ['key' => 'ball-python', 'title' => 'Ball python'],
-        ]],
-    ]],
-]
-```
-
-### v3.2 highlights · single-trigger map drilldown
-
-- **New variant `map-drilldown-alpine`** · one trigger, one dropdown. Click UK on the world map → menu stays open, swaps to UK regions. Click Greater London → menu swaps to London boroughs. Click a borough → menu closes with all three values set.
-- **Breadcrumb + back button** in the menu header so the user always knows where they are and can step back up the hierarchy.
-- **`:levels` config** · an array of `[{name, title, dataset, requires?}]` entries. `requires` gates whether the level is reachable (e.g. only drill into UK regions when `country=gb`). Stops drilldown gracefully when the chosen branch has no further data.
-- **One hidden input per level** so standard form posts get `country=gb&region=greater-london&borough=camden`. Re-opening the menu resumes at the deepest enabled level rather than rewinding.
-
-```blade
-<x-select::map-drilldown-alpine
-    name="location"
-    label="Pick a location"
-    :levels="[
-        ['name' => 'country', 'title' => 'Country', 'dataset' => 'world'],
-        ['name' => 'region',  'title' => 'UK region', 'dataset' => 'uk',
-            'requires' => ['country' => 'gb']],
-        ['name' => 'borough', 'title' => 'Borough',  'dataset' => 'uk:greater-london',
-            'requires' => ['region' => 'greater-london']],
-    ]" />
-```
-
-### v3.1 highlights · clickable region polygons all the way down
-
-- **UK is now polygons, not dots** · `uk.json` ships 16 Natural Earth admin-1 regions (Greater London, South East, Scotland, etc) grouped from the raw 232 sub-features. Each region is one SVG path that visually shows internal sub-borders while clicking anywhere selects the region.
-- **Per-region drilldown datasets** · `resources/data/uk-greater-london.json`, `uk-south-east.json`, `uk-scotland.json`, … one file per UK region with its sub-region polygons re-projected into a tight per-region viewBox so the zoom is useful.
-- **`dataset="uk:<region>"`** shortcut · the component resolves `dataset="uk:greater-london"` to the matching file via the new `MapData::ukRegion('greater-london')` helper.
-- The hand-curated dot-marker `uk-towns.json` is kept as an alternative — apps that prefer point markers over polygons can still use it.
-
-### v3.0 highlights · `map-svg-alpine` + bundled world / UK data
-
-- **New variant `map-svg-alpine`** · same trigger / menu / a11y pattern as the dropdown family, but the menu content is an `<svg>` with each item as a clickable `<path>` (polygon) or `<circle>` (point). Keyboard arrow / Home / End cycle through items; the bottom hover-strip shows the active item's title.
-- **Bundled data**:
-  - `world.json` — Natural Earth admin-0 110m, ~180 countries as SVG paths (~112KB).
-  - `uk.json` — UK outline + ~40 major city points (~2.8KB).
-  - `uk-towns.json` — hand-curated boroughs / suburbs for London, Manchester, Birmingham, Glasgow, Edinburgh (~4KB).
-- **Helper** `LoggedCloud\Select\MapData::world()` / `::uk()` / `::ukTowns($cityKey)` returns the dataset arrays so apps can pass them inline.
-- **Drilldown** is just the existing `:depends-on` chain · three `map-svg-alpine` stacked, each gated by the previous selection. No new composer needed.
-- **Data shape is open** · supply your own `{viewBox, items: [{key, title, path?, cx?, cy?}], outline?}` arrays for any country / region. The bundled UK data is a worked example; the Python builder under `bin/build-map-data.py` is the reference pipeline.
-
-```blade
-<x-select::map-svg-alpine name="country" dataset="world" label="Country" />
-
-{{-- Drilldown using depends-on · child unlocks when parent is set --}}
-<x-select::map-svg-alpine name="city" dataset="uk"
-    depends-on="country" depends-message="Pick a country first" />
-<x-select::map-svg-alpine name="town" dataset="uk-towns:london"
-    depends-on="city" />
-```
-
-### v2.11 highlights (R.A.P pass on v2.10 additions)
-
-- **Cards — robust:** the pager `<nav>` is now a sibling of the `role="radiogroup"` / `role="group"` div, not a child, so the WAI-ARIA "radiogroup must contain only radio children" contract holds. The card variants now render as `.lc-cards-host > .lc-cards + nav.lc-cards__pager`. `page` is clamped via a `$watch('items')` so a remote refresh that shrinks the list can't leave us on an empty page.
-- **Cards — accessible:** clicking Prev/Next moves focus to the first card of the new page so keyboard arrow navigation continues naturally. Components with an initial selection open on the page containing it.
-- **Depends-on — robust:** every variant exposes an Alpine `destroy()` hook that removes the document-level `change` listener · no zombie callbacks under Livewire navigation.
-- **Depends-on — accessible:** the polite live region now announces "Selection cleared because the parent changed." (and the parent-unset variant) when the parent change auto-clears the child.
-
-### v2.10 highlights
-
-- **Card pagination.** `card-single-alpine` + `card-multi-alpine` accept `:page-size="6"` to slice items into pages with a prev/next pager + `Page N of M` status. Keyboard arrow at the last card of a page advances to the next page and focuses its first card; arrow-up from the first card goes back. Works with any number of items.
-- **Depends-on.** `searchable-alpine`, `multi-alpine`, `tags-alpine` accept `:depends-on="country"` to gate the picker on another form field. Until the parent is set, the trigger renders disabled with a `dependsMessage` placeholder ("Pick a country first" by default). Once the parent has a value, items get scoped client-side via an optional `parent` key on each item, and any `:search-url` gets `&parent=…` appended so the server can filter too. Changing the parent auto-resets the child's selection.
-
-```blade
-<x-select::searchable-alpine name="country" :items="$countries" label="Country" />
-<x-select::searchable-alpine
-    name="city" :items="$cities" label="City"
-    depends-on="country"
-    depends-message="Pick a country first" />
-{{-- Each city has parent => 'uk', 'fr', etc. --}}
-```
-
-### v2.9 highlights (final R.A.P pass)
-
-- **Robust:** transient `5xx` / network failures get one automatic retry with a 200ms gap before surfacing as an error. `optionId` routes through `window.lcSafeId` (escapes input underscores first so `"héllo"` and `"h_e9llo"` keys can no longer collide on the DOM id). On viewports ≤ 640px, opening the menu also locks `document.documentElement` scroll (reference-counted) so the page doesn't slide under the user's thumb on iOS.
-- **Accessible:** live-region announcements are throttled via `window.lcMakeAnnouncer` (~280ms coalesce) so fast typing no longer chatters in JAWS / NVDA. `.lc-select__more-row` gained a `forced-colors` block that pins it to `CanvasText` / `Canvas` with a top divider.
-- **Perf:** ranking now reads from a per-items `WeakMap` of pre-lowercased title / subtitle / key strings · we lowercase once when an items array first lands and reuse those strings for every subsequent query against it. Memo from v2.8 still short-circuits the no-change case on top.
-
-### v2.8 highlights
-
-- **Memoized filter pipeline.** `window.lcMakeFilter` caches the last `(items, query)` pair and short-circuits the ranking + highlight work when Alpine re-invokes the `filtered` getter without inputs having changed. Meaningful on large lists where the O(items × tokens) work was running per render tick.
-- **Listbox render cap.** All three search-bearing variants take a `:render-limit="50"` prop (default 50). Beyond the cap the menu shows "Showing 50 of N · refine your search to narrow further." instead of dumping hundreds of DOM nodes. Keyboard navigation + cursor stay scoped to the visible window so arrow-down doesn't leap into hidden rows.
-
-### v2.7 highlights
-
-- **Inline error row** when a remote fetch fails (HTTP / network) · renders in the menu as `role="alert"` and the polite live region announces "Search failed. Try again." so the failure is impossible to miss whether you're sighted or using a screen reader.
-- **Cancel-on-close** for any in-flight remote search · `_remote.cancel()` runs from each variant's `close()` so a stale response can't replace items after the user has moved on.
-- **Trim + case-insensitive dedupe** for `tags-alpine` custom values · " Feeding " and "feeding" don't both land. Existing keys win over new strings when the title matches a suggestion case-insensitively.
-- **Accessible-name fallback** · every trigger now resolves to `label` → `labelledBy` → `placeholder` so a developer who forgets all three still ships a usable picker for screen-reader users.
-- **`<span>`-not-`<mark>`** for the match highlight · prevents JAWS / NVDA in verbose modes from announcing "marked" / "marked end" around every matched substring.
-- **`tags-alpine` announces filtered counts** on the polite live region the same way `searchable` / `multi` do.
-
-### v2.6 highlights
-
-- **Debounced remote search.** Pass `:search-url="route('prey.search')"` (and optional `:debounce-ms="200"`) to `searchable-alpine`, `multi-alpine`, or `tags-alpine`. Typing fires a debounced `GET ${url}?q=…` that returns a JSON array of items; `AbortController` discards in-flight requests when the next keystroke lands so stale responses never overwrite fresh ones. The trigger's search input flips `aria-busy="true"` and a small accent-coloured spinner renders inside the input while a request is open.
-- The token-ranked filter from v2.5 still runs over whatever items the server returns, so server-side relevance can stay simple while the client still gets prefix-priority sort + highlighted matches.
-
-### v2.5 highlights
-
-- **Token-aware ranking.** Multiple search tokens are AND-ed together and ranked: title-prefix > mid-title > key-prefix > key-substring > subtitle. So typing `ra` lists "Rat" before "African soft-furred rat", and `mou rat` only matches items that contain both.
-- **Match highlight.** The filter pipeline reports match ranges, the template wraps them in `<mark class="lc-select__match">`, and the CSS tints them with the host's accent via `color-mix`. Inherited everywhere the same item shape is used (`searchable-alpine`, `multi-alpine`, `tags-alpine`).
-
-### v2.4 highlights
-
-- **Mobile bottom-sheet.** On viewports ≤ 640px the `searchable-alpine` + `multi-alpine` dropdowns render as a slide-up sheet with a tap-out backdrop instead of an absolute-positioned 22rem menu above the keyboard.
-- **× clear button.** The `searchable-alpine` trigger gains an inline × when something is selected; `multi-alpine` gains a clear-all × beside the chevron.
-- **`error="..."` prop.** Pass an error string on any dropdown variant to get a red ring, `aria-invalid="true"`, an `aria-describedby`-linked message with `role="alert"`, and `forced-colors` support.
-- **`tags-alpine` variant.** Free-form tag entry with chip removal, Backspace-to-delete-last, suggestion filtering, and optional `allowCustom="false"` to lock typing to the suggestion set.
 
 All variants share the same `{key, title, subtitle, svg}` item shape, the same CSS custom-property theming, the same reduced-motion / forced-colours handling, and a built-in `<noscript>` fallback that swaps in a native `<select>` when JavaScript is disabled.
 
@@ -494,6 +329,347 @@ Free-form tag editor. The trigger holds chips + an inline input · type to filte
 | `allow-custom` | `true` | Set `false` to disallow strings that aren't in `items` (Enter on a non-match becomes a no-op). |
 | `max` | `null` | Cap the number of chips. Beyond the cap the screen-reader live region announces "Maximum number of tags reached." |
 | `error` | `null` | Red ring + `role="alert"` message + `aria-invalid`. |
+
+---
+
+## `<x-select::map-svg-alpine>`
+
+![map-svg-alpine](docs/images/map-world.png)
+
+SVG map picker. Menu content is an `<svg>` with each item as a clickable `<path>` (polygon) or `<circle>` (point). Same trigger / open-close / a11y pattern as the dropdown family.
+
+```blade
+{{-- Bundled dataset shortcut --}}
+<x-select::map-svg-alpine name="country" dataset="world" label="Country" />
+
+{{-- Inline data --}}
+<x-select::map-svg-alpine
+    name="region"
+    :items="$regions"  {{-- [{key, title, path?, cx?, cy?}] --}}
+    view-box="0 0 500 600"
+    :outline="$outlinePath"
+    label="Region" />
+```
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `dataset` | `null` | Shortcut: `world`, `uk`, `uk:greater-london` (any per-region key), `uk-towns:london`. |
+| `items` | `[]` | Inline data. Items carry `path` (polygon) OR `cx`/`cy` (point). |
+| `view-box` | `'0 0 1000 500'` | SVG viewBox. |
+| `outline` | `null` | Optional non-interactive background path. |
+| `depends-on` / `depends-message` | `null` | Lock until a parent field is set (see depends-on section). |
+
+`LoggedCloud\Select\MapData::world()` / `::uk()` / `::ukRegion('greater-london')` return ready-made datasets.
+
+---
+
+## `<x-select::map-drilldown-alpine>`
+
+![map-drilldown-alpine](docs/images/map-drilldown-single.png)
+
+One trigger, one dropdown. The menu's SVG swaps as the user drills in. Click UK on the world map → menu stays open, swaps to UK regions. Pick a region → swaps to that region's sub-areas. Final pick → menu closes with one hidden input per level.
+
+```blade
+<x-select::map-drilldown-alpine
+    name="location"
+    label="Location"
+    :levels="[
+        ['name' => 'country', 'title' => 'Country', 'dataset' => 'world'],
+        ['name' => 'region',  'title' => 'UK region', 'dataset' => 'uk',
+            'requires' => ['country' => 'gb']],
+        ['name' => 'borough', 'title' => 'Borough', 'dataset' => 'uk:greater-london',
+            'requires' => ['region' => 'greater-london']],
+    ]" />
+```
+
+Breadcrumb + back button in the menu header. `requires` gates whether a level is reachable. Re-opening the menu resumes at the deepest enabled level. Posts as `name=country=gb&region=greater-london&borough=camden`.
+
+---
+
+## `<x-select::map-pin-alpine>`
+
+![map-pin-alpine](docs/images/map-pin-alpine.png)
+
+Click anywhere on a map (or any SVG) to drop a pin. Same `dataset` shortcuts as `map-svg-alpine`; items render as non-interactive background scenery. Hidden input emits `"x,y"` in viewBox coords.
+
+```blade
+<x-select::map-pin-alpine name="location_pin" dataset="world" label="Drop a pin" />
+```
+
+**Keyboard** — focus the SVG (it's `tabindex=0`), arrow keys nudge a ghost cursor (Shift × 10 for bigger steps), Enter commits, Delete clears.
+
+---
+
+## `<x-select::tree-alpine>`
+
+![tree-alpine](docs/images/tree-alpine.png)
+
+Hierarchical select. Items can carry `children` recursively. WAI-ARIA `role="tree"` + `role="treeitem"` with `aria-level` / `aria-expanded` / `aria-selected`.
+
+```blade
+<x-select::tree-alpine
+    name="taxonomy"
+    :items="$tree"  {{-- [{key, title, children?}] --}}
+    label="Pick an item"
+    :expanded-depth="1" />
+```
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `expanded-depth` | `0` | Auto-expand branches at depth < N. |
+| `leaves-only` | `true` | Restrict picks to leaf nodes; set `false` to allow branch picks. |
+
+**Keyboard** — ↑↓ visible rows, → expands or first child, ← collapses or parent, Home/End, Enter / Space picks. Re-opening restores ancestors of the previously-picked leaf.
+
+---
+
+## `<x-select::rating-alpine>`
+
+![rating-alpine](docs/images/rating-alpine.png)
+
+Star rating with `role="slider"` semantics. Optional half-stars + clear button.
+
+```blade
+<x-select::rating-alpine name="quality" :selected="3.5" :step="0.5" :max="5" />
+```
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `max` | `5` | Number of stars. |
+| `step` | `1` | Set to `0.5` for half-stars; splits each star into left/right hit areas. |
+| `allow-zero` | `true` | Renders an inline × that clears the rating. |
+
+`aria-valuetext` uses singular `"1 star"` for value 1, `"N stars"` otherwise.
+
+---
+
+## `<x-select::color-palette-alpine>`
+
+![color-palette-alpine](docs/images/color-palette-alpine.png)
+
+Swatch grid in the dropdown menu. Items carry a `color` (any CSS colour). Selected swatch inlines on the trigger.
+
+```blade
+<x-select::color-palette-alpine
+    name="colour"
+    :items="$palette"  {{-- [{key, title, color}] --}}
+    :columns="6"
+    label="Colour" />
+```
+
+`:columns` controls the grid and the keyboard ↑/↓ jump distance. Arrow ↑/↓ jumps by a whole row; Enter/Space commits.
+
+Luminance-aware: light swatches get a dark checkmark, dark swatches get a white one, so the check is always legible.
+
+---
+
+## `<x-select::date-alpine>`
+
+![date-alpine](docs/images/date-alpine.png)
+
+Month-grid calendar following the WAI-ARIA grid pattern. `role="dialog"` menu containing a `role="grid"` table of `role="gridcell"` days.
+
+```blade
+<x-select::date-alpine
+    name="due_date"
+    selected="2026-05-15"
+    min="2026-01-01"
+    max="2026-12-31"
+    label="Pick a date" />
+```
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `selected` | `null` | ISO `YYYY-MM-DD`. |
+| `min` / `max` | `null` | ISO bounds; outside cells get `aria-disabled`. |
+| `first-day-of-week` | `1` (Mon) | Shifts the header + columns. |
+
+**Keyboard** — ↑↓←→ by day, Page Up/Down by month, Shift+Page Up/Down by year, Home/End to week ends, Enter / Space picks. `«` / `»` buttons in the header for year jump. Today + Clear footer actions. No-JS fallback uses native `<input type="date">`.
+
+---
+
+## `<x-select::time-alpine>`
+
+![time-alpine](docs/images/time-alpine.png)
+
+Hour + minute scroll columns with an optional AM/PM third column. The centred row is the active value; a faint accent rail across the columns marks the selection band.
+
+```blade
+<x-select::time-alpine
+    name="feeding_time"
+    selected="14:30"
+    :minute-step="5" />
+```
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `selected` | `null` | `HH:MM` (24h). |
+| `minute-step` | `5` | Snaps the minute grid. |
+| `use24h` | `true` | Set `false` for 12h with AM/PM. |
+
+Now / Done footer actions. No-JS fallback uses native `<input type="time">`.
+
+---
+
+## `<x-select::date-range-alpine>`
+
+![date-range-alpine](docs/images/date-range-alpine.png)
+
+Pick a start + end date in one calendar. Hover preview shades the in-between days while in end-pick mode; auto-swaps if the user picks an end before the start.
+
+```blade
+<x-select::date-range-alpine
+    name="log_range"
+    start-selected="2026-05-01"
+    end-selected="2026-05-15"
+    label="Log range" />
+```
+
+Posts as `{name}_start` + `{name}_end` hidden inputs. Same `min` / `max` / `first-day-of-week` props as `date-alpine`.
+
+---
+
+## `<x-select::number-stepper-alpine>`
+
+![number-stepper-alpine](docs/images/number-stepper-alpine.png)
+
+`role="spinbutton"` with `aria-valuemin/max/now/text`. ± buttons + optional range slider underneath.
+
+```blade
+<x-select::number-stepper-alpine
+    name="weight"
+    :selected="450"
+    :min="0" :max="2000" :step="5"
+    suffix="g"
+    label="Snake weight" />
+```
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `min` / `max` / `step` | `0` / `100` / `1` | Numeric bounds + step grid. |
+| `suffix` | `null` | Unit label rendered after the value (e.g. `kg`, `g`). |
+| `show-slider` | `true` | Hide the range slider if `false`. |
+
+**Keyboard** — ↑/→ +step, ↓/← -step, Shift × 10, Page Up/Down ×10, Home/End to bounds. Native `<input type="number">` fallback.
+
+---
+
+## `<x-select::schedule-alpine>`
+
+![schedule-alpine](docs/images/schedule-alpine.png)
+
+7-pill day-of-week toggle with `role="group"` + `aria-pressed`.
+
+```blade
+<x-select::schedule-alpine
+    name="feed_days"
+    :selected="['mon', 'wed', 'fri']"
+    label="Feeding days" />
+```
+
+`:first-day-of-week` rotates the start. Posts as `name[]` so Laravel array validation just works.
+
+---
+
+## `<x-select::likert-alpine>`
+
+![likert-alpine](docs/images/likert-alpine.png)
+
+5/7/10-point survey scale with `role="radiogroup"`. `:scale="10"` switches to NPS-style 0-10; smaller scales start at 1.
+
+```blade
+<x-select::likert-alpine
+    name="agreement"
+    :selected="4"
+    :scale="5"
+    min-label="Strongly disagree"
+    max-label="Strongly agree" />
+```
+
+**Keyboard** — arrow keys move ±1, Home/End jump to ends, Enter / Space picks.
+
+---
+
+## `<x-select::sortable-rank-alpine>`
+
+![sortable-rank-alpine](docs/images/sortable-rank-alpine.png)
+
+Drag rows to reorder. Captures *order*, not just selection. HTML5 drag-and-drop on desktop; ↑/↓ buttons + `Alt+↑/↓` keyboard shortcut for touch users.
+
+```blade
+<x-select::sortable-rank-alpine
+    name="priorities"
+    :items="$events"
+    :selected="['feeding', 'weight']"  {{-- initial order; falls back to items' natural order --}}
+    label="Drag to rank" />
+```
+
+Live-region announces drag-over reorders ("Feeding at position 3") so screen-reader users tracking a drag hear where it lands. Drag handle has `touch-action: none` so mobile drag starts immediately.
+
+Posts as `name[]` in the user-set order.
+
+---
+
+## `<x-select::swipe-deck-alpine>`
+
+![swipe-deck-alpine](docs/images/swipe-deck-alpine.png)
+
+Tinder-style accept/skip card deck. Pointer events (mouse + touch + pen) drive the drag; the swipe direction past `:threshold` commits.
+
+```blade
+<x-select::swipe-deck-alpine
+    name="shortlist"
+    :items="$cards"  {{-- each item can also carry `image` for a hero photo --}}
+    :threshold="80"
+    label="Swipe deck" />
+```
+
+**Controls** — accept / skip / undo buttons below the stack. **Keyboard** — `→` accept, `←` skip, `Backspace` undo. Stale-cursor guard cleans up the pointer capture if the user advances via keyboard mid-drag. Posts accepted keys as `name[]`.
+
+---
+
+## `<x-select::cascading-columns-alpine>`
+
+![cascading-columns-alpine](docs/images/cascading-columns-alpine.png)
+
+macOS Finder-style. Pick in column 1 → its children render in column 2 → pick again → column 3.
+
+```blade
+<x-select::cascading-columns-alpine
+    name="taxonomy"
+    :items="$tree"  {{-- same recursive shape as tree-alpine --}}
+    :max-columns="4"
+    label="Taxonomy" />
+```
+
+Same `items` shape as `tree-alpine`; better UX when the hierarchy is wide-but-shallow rather than deep. Pre-selected values auto-expand the matching column path.
+
+**Keyboard** — ↓↑ move within a column, → opens children (or moves to first child), ← collapses or moves to parent, Home/End. Live-region announces column-opens ("Opened Animals: 2 items").
+
+---
+
+## `<x-select::image-region-alpine>`
+
+![image-region-alpine](docs/images/image-region-alpine.png)
+
+Click any region of a background image. Items carry an SVG `path` describing the hit region; selected region fills with the accent colour.
+
+```blade
+<x-select::image-region-alpine
+    name="body_part"
+    :items="$regions"  {{-- [{key, title, path}] --}}
+    view-box="0 0 200 300"
+    label="Body region"
+    placeholder="Where does it hurt?" />
+```
+
+| Attribute | Default | Purpose |
+| --- | --- | --- |
+| `src` | `null` | Optional background image URL (renders as `<image href="…">`). |
+| `view-box` | `'0 0 1000 500'` | SVG viewBox for the region paths. |
+| `show-outlines` | `true` | Toggle the faint region outlines; set `false` so only hover reveals them. |
+
+**Keyboard** — arrow keys cycle through regions, Home/End, Enter / Space picks.
 
 ---
 
