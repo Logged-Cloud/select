@@ -136,6 +136,7 @@
                          stroke="currentColor" stroke-width="3"
                          stroke-linecap="round" stroke-linejoin="round"
                          class="lc-color__check"
+                         :class="isLight(@js($opt['color'])) ? 'lc-color__check--dark' : ''"
                          x-show="selected?.key === @js($opt['key'])">
                         <path d="M5 12l5 5L20 7" />
                     </svg>
@@ -173,6 +174,31 @@
 
                         syncSelectedFromValue() {
                             this.selected = this.items.find((o) => o.key === this.value) || null;
+                        },
+
+                        // Relative-luminance test · returns true when the
+                        // swatch is light enough that a white checkmark
+                        // would disappear into it. Falls back to false
+                        // (= white check) for non-hex inputs.
+                        isLight(color) {
+                            if (typeof color !== 'string') return false;
+                            let r, g, b;
+                            let m = /^#([0-9a-f]{3})$/i.exec(color);
+                            if (m) {
+                                r = parseInt(m[1][0] + m[1][0], 16);
+                                g = parseInt(m[1][1] + m[1][1], 16);
+                                b = parseInt(m[1][2] + m[1][2], 16);
+                            } else {
+                                m = /^#([0-9a-f]{6})$/i.exec(color);
+                                if (!m) return false;
+                                r = parseInt(m[1].slice(0, 2), 16);
+                                g = parseInt(m[1].slice(2, 4), 16);
+                                b = parseInt(m[1].slice(4, 6), 16);
+                            }
+                            // ITU-R BT.709 luminance · threshold tuned so
+                            // pastels (light grey, bone, cream) trigger
+                            // the dark check but mid-tones don't.
+                            return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 150;
                         },
 
                         optionId(key) {

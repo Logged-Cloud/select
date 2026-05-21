@@ -37,6 +37,7 @@
         'groupId' => $groupId,
         'a11y' => [
             'stars' => 'stars',
+            'star' => 'star',     // singular form · used when value === 1
             'cleared' => 'Rating cleared',
         ],
     ];
@@ -64,7 +65,7 @@
          :aria-valuemin="allowZero ? 0 : step"
          :aria-valuemax="max"
          :aria-valuenow="value"
-         :aria-valuetext="value + ' ' + (a11y.stars || 'stars')"
+         :aria-valuetext="value + ' ' + (value === 1 ? (a11y.star || 'star') : (a11y.stars || 'stars'))"
          @if ($label) aria-label="{{ $label }}"
          @elseif ($labelledBy) aria-labelledby="{{ $labelledBy }}"
          @else aria-label="Rating" @endif
@@ -88,7 +89,7 @@
                 <button type="button"
                         class="lc-rating__hit lc-rating__hit--left"
                         x-show="step < 1"
-                        aria-label="{{ ($i - 0.5) }} {{ $i === 1 ? 'star' : 'stars' }}"
+                        aria-label="{{ ($i - 0.5) }} stars"
                         @if ($disabled) disabled @endif
                         @click="set({{ $i - 0.5 }})"
                         @mouseenter="hover = {{ $i - 0.5 }}"></button>
@@ -163,7 +164,7 @@
                             this.value = clamped;
                             this.liveMessage = clamped === 0
                                 ? (this.a11y.cleared || 'Rating cleared')
-                                : clamped + ' ' + (this.a11y.stars || 'stars');
+                                : clamped + ' ' + (clamped === 1 ? (this.a11y.star || 'star') : (this.a11y.stars || 'stars'));
                             if (this.$refs.hidden) {
                                 this.$refs.hidden.value = clamped;
                                 this.$refs.hidden.dispatchEvent(new Event('change', { bubbles: true }));

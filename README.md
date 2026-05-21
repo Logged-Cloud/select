@@ -31,6 +31,12 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v3.6 highlights · R.A.P pass on the v3.0-v3.5 family
+
+- **Robust** · color-palette uses ITU-R BT.709 luminance to flip the checkmark to dark on light swatches (white-check-on-white was invisible); date picker's arrow nav now skips disabled cells in the same direction so the focus never lands on something the user can't pick.
+- **Accessible** · map-pin gains full keyboard placement via a ghost cursor (arrow keys move, Shift jumps 10×, Enter commits, Delete clears) — the SVG is now `tabindex=0` with a focus ring; rating's `aria-valuetext` uses singular `1 star` vs plural; date picker adds `«` / `»` year-jump buttons in the header and Shift-Page Up/Down for keyboard year-jump.
+- **Performance** · tree picker pre-computes a `_parentOf[]` map at init so `isVisible()` is O(depth) hash lookups instead of an O(N) backwards scan per node per render.
+
 ### v3.5 highlights · `date-alpine` (month-grid calendar)
 
 Calendar-grid date picker following the WAI-ARIA grid pattern.

@@ -121,6 +121,11 @@
     color: var(--lc-ink);
     font-size: .95rem;
 }
+.lc-date__nav-pair {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+}
 .lc-date__grid {
     border-collapse: collapse;
     width: 100%;
@@ -325,6 +330,12 @@
     color: white;
     filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
 }
+/* Dark check for light swatches · the JS contrast guard flips this on
+   whenever the swatch's relative luminance crosses ~150/255. */
+.lc-color__check--dark {
+    color: #111;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,.6));
+}
 .lc-color__caption {
     text-align: center;
     color: var(--lc-ink-dim);
@@ -339,6 +350,25 @@
 
 /* Map-pin · click anywhere on the SVG to drop a pin. */
 .lc-map--pinnable { cursor: crosshair; }
+.lc-map--pinnable:focus-visible {
+    outline: 2px solid var(--lc-accent);
+    outline-offset: -2px;
+}
+.lc-map__pin-ghost { pointer-events: none; }
+.lc-map__pin-ghost-ring {
+    fill: none;
+    stroke: var(--lc-accent);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 2;
+}
+.lc-map__pin-ghost-cross {
+    stroke: var(--lc-accent);
+    stroke-width: 1.5;
+}
+@media (forced-colors: active) {
+    .lc-map__pin-ghost-ring,
+    .lc-map__pin-ghost-cross { stroke: Highlight; }
+}
 .lc-map__item--bg { pointer-events: none; }
 .lc-map__pin { pointer-events: none; }
 .lc-map__pin-halo {
