@@ -327,6 +327,78 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── rating + color-palette + map-pin (v3.4) ───────────────────────
+
+test('rating-alpine uses role=slider with valuemin / valuemax / valuenow', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/rating-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="slider"')
+        ->and($tpl)->toContain(':aria-valuemin')
+        ->and($tpl)->toContain(':aria-valuemax="max"')
+        ->and($tpl)->toContain(':aria-valuenow="value"')
+        ->and($tpl)->toContain(':aria-valuetext');
+});
+
+test('rating-alpine supports step + allowZero + half-star hit areas', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/rating-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'step' => 1")
+        ->and($tpl)->toContain("'allowZero' => true")
+        ->and($tpl)->toContain('lc-rating__hit--left')
+        ->and($tpl)->toContain('lc-rating__hit--right');
+});
+
+test('color-palette-alpine renders a swatch grid with grid keyboard nav', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/color-palette-alpine.blade.php');
+    expect($tpl)
+        ->toContain('role="listbox"')
+        ->and($tpl)->toContain('class="lc-color__grid"')
+        ->and($tpl)->toContain('class="lc-color__swatch"')
+        // Grid wraps: arrow up/down should jump a whole row, not a cell.
+        ->and($tpl)->toContain('@keydown.arrow-down.prevent="moveBy(columns)"')
+        ->and($tpl)->toContain('@keydown.arrow-up.prevent="moveBy(-columns)"');
+});
+
+test('color-palette-alpine bakes the swatch into the trigger when selected', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/color-palette-alpine.blade.php');
+    expect($tpl)->toContain('lc-color__swatch--trigger');
+});
+
+test('map-pin-alpine emits "x,y" via the hidden input + uses SVG CTM math', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-pin-alpine.blade.php');
+    expect($tpl)
+        // The Alpine method names + the placeFromEvent CTM-inverse math.
+        ->toContain('placeFromEvent(e)')
+        ->and($tpl)->toContain('svg.getScreenCTM()')
+        ->and($tpl)->toContain('.inverse()')
+        ->and($tpl)->toContain("this.pin.x + ',' + this.pin.y");
+});
+
+test('map-pin-alpine uses x-show on the pin <g> (Alpine + SVG namespace fix)', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-pin-alpine.blade.php');
+    // <template x-if> inside <svg> creates HTML-namespace nodes that the
+    // browser drops · we use x-show on a real <g> instead.
+    expect($tpl)
+        ->toContain('<g class="lc-map__pin"')
+        ->and($tpl)->toContain('x-show="pin"')
+        ->and($tpl)->not->toContain('<template x-if="pin">');
+});
+
+test('styles ship complete blocks for rating, color, and map-pin', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    foreach ([
+        '.lc-rating', '.lc-rating__track', '.lc-rating__star', '.lc-rating__hit',
+        '.lc-color__grid', '.lc-color__cell', '.lc-color__swatch', '.lc-color__check',
+        '.lc-map--pinnable', '.lc-map__pin', '.lc-map__pin-halo', '.lc-map__pin-dot',
+        '@keyframes lc-map-pin-pulse',
+    ] as $hook) {
+        expect($css)->toContain($hook);
+    }
+    // forced-colors fallbacks for the new pieces.
+    expect($css)->toMatch('/\.lc-rating__star\.is-full[\s\S]*color:\s*Highlight/s');
+    expect($css)->toMatch('/\.lc-map__pin-dot[\s\S]*fill:\s*Highlight/s');
+});
+
 // ─── tree-alpine (v3.3 · hierarchical expand-collapse) ─────────────
 
 test('tree-alpine renders WAI-ARIA tree + treeitem roles with depth levels', function () {
