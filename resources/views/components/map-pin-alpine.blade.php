@@ -128,12 +128,23 @@
         <div class="lc-select__sheet-handle" aria-hidden="true"></div>
         <svg id="{{ $svgId }}"
              x-ref="svg"
+             tabindex="{{ $disabled ? '-1' : '0' }}"
              viewBox="{{ $viewBox }}"
              class="lc-map lc-map--pinnable"
              role="application"
-             aria-label="Click anywhere to drop a pin"
+             aria-label="Drop a pin · click or use arrow keys plus Enter"
+             :aria-describedby="triggerId + '-live'"
              preserveAspectRatio="xMidYMid meet"
-             @click="placeFromEvent($event)">
+             @click="placeFromEvent($event)"
+             @focus="ensureGhost()"
+             @keydown.arrow-up.prevent="moveGhost(0, -keyStep($event))"
+             @keydown.arrow-down.prevent="moveGhost(0, keyStep($event))"
+             @keydown.arrow-left.prevent="moveGhost(-keyStep($event), 0)"
+             @keydown.arrow-right.prevent="moveGhost(keyStep($event), 0)"
+             @keydown.enter.prevent="commitGhost()"
+             @keydown.space.prevent="commitGhost()"
+             @keydown.delete.prevent="clearPin()"
+             @keydown.backspace.prevent="clearPin()">
             @if ($outline)
                 <path d="{{ $outline }}" class="lc-map__outline" aria-hidden="true" />
             @endif
@@ -150,6 +161,16 @@
                :style="pin ? ('transform: translate(' + pin.x + 'px,' + pin.y + 'px)') : ''">
                 <circle r="10" class="lc-map__pin-halo" />
                 <circle r="4"  class="lc-map__pin-dot" />
+            </g>
+
+            {{-- Keyboard-mode ghost cursor · separate from the committed
+                 pin so the user can preview the placement before Enter. --}}
+            <g class="lc-map__pin-ghost"
+               x-show="ghost && !pin"
+               :style="ghost ? ('transform: translate(' + ghost.x + 'px,' + ghost.y + 'px)') : ''">
+                <circle r="6" class="lc-map__pin-ghost-ring" />
+                <line class="lc-map__pin-ghost-cross" x1="-8" x2="8" y1="0" y2="0" />
+                <line class="lc-map__pin-ghost-cross" x1="0" x2="0" y1="-8" y2="8" />
             </g>
         </svg>
         <div class="lc-map__hover">
@@ -179,6 +200,9 @@
                         placeholder: config.placeholder || '',
                         a11y: config.a11y || {},
                         pin: config.pin || null,
+                        // Ghost cursor only used in keyboard mode · gets
+                        // initialised to the viewBox centre on first focus.
+                        ghost: null,
                         open: false,
 
                         toggle() {
@@ -224,6 +248,49 @@
 
                         clearPin() {
                             this.pin = null;
+                            if (this.$refs.hidden) {
+                                this.$refs.hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        },
+
+                        // Parse the SVG viewBox into [minX, minY, width, height]
+                        // · used to pick a sensible ghost-cursor start point.
+                        _vbox() {
+                            const parts = this.viewBox.trim().split(/\s+/).map(parseFloat);
+                            return parts.length === 4 ? parts : [0, 0, 1000, 500];
+                        },
+
+                        // Ensure the ghost cursor exists when the SVG takes focus
+                        // so the user has something visible to nudge with arrows.
+                        // If a pin is already placed, the ghost starts there.
+                        ensureGhost() {
+                            if (this.ghost) return;
+                            if (this.pin) {
+                                this.ghost = { x: this.pin.x, y: this.pin.y };
+                                return;
+                            }
+                            const [minX, minY, w, h] = this._vbox();
+                            this.ghost = { x: Math.round(minX + w / 2), y: Math.round(minY + h / 2) };
+                        },
+
+                        // Arrow-key step · Shift jumps by larger increments
+                        // so a 1000-wide viewBox stays navigable in a few keys.
+                        keyStep(e) {
+                            const [, , w] = this._vbox();
+                            const base = Math.max(1, Math.round(w / 100));   // ~1% of width
+                            return e && e.shiftKey ? base * 10 : base;
+                        },
+
+                        moveGhost(dx, dy) {
+                            this.ensureGhost();
+                            const [minX, minY, w, h] = this._vbox();
+                            this.ghost.x = Math.max(minX, Math.min(minX + w, this.ghost.x + dx));
+                            this.ghost.y = Math.max(minY, Math.min(minY + h, this.ghost.y + dy));
+                        },
+
+                        commitGhost() {
+                            this.ensureGhost();
+                            this.pin = { x: this.ghost.x, y: this.ghost.y };
                             if (this.$refs.hidden) {
                                 this.$refs.hidden.dispatchEvent(new Event('change', { bubbles: true }));
                             }

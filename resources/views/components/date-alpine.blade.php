@@ -112,11 +112,19 @@
     <div x-show="open" x-cloak x-transition.opacity.duration.100ms class="lc-select__menu lc-select__menu--date" role="dialog" aria-label="Date picker">
         <div class="lc-select__sheet-handle" aria-hidden="true"></div>
 
-        {{-- Month / year header with nav arrows. --}}
+        {{-- Month / year header with paired nav arrows · «» step by year,
+             ‹› step by month. The aria-live region on the title announces
+             month + year as it changes. --}}
         <div class="lc-date__header">
-            <button type="button" class="lc-date__nav" @click="navMonth(-1)" :aria-label="a11y.prev_month">‹</button>
+            <span class="lc-date__nav-pair">
+                <button type="button" class="lc-date__nav" @click="navYear(-1)" :aria-label="a11y.prev_year">«</button>
+                <button type="button" class="lc-date__nav" @click="navMonth(-1)" :aria-label="a11y.prev_month">‹</button>
+            </span>
             <span class="lc-date__title" aria-live="polite" x-text="monthNames[viewMonth] + ' ' + viewYear"></span>
-            <button type="button" class="lc-date__nav" @click="navMonth(1)" :aria-label="a11y.next_month">›</button>
+            <span class="lc-date__nav-pair">
+                <button type="button" class="lc-date__nav" @click="navMonth(1)" :aria-label="a11y.next_month">›</button>
+                <button type="button" class="lc-date__nav" @click="navYear(1)" :aria-label="a11y.next_year">»</button>
+            </span>
         </div>
 
         {{-- Day-of-week row + 6-week grid. --}}
@@ -137,8 +145,8 @@
                    @keydown.arrow-up.prevent="moveFocus(-7)"
                    @keydown.home.prevent="moveFocus(-(focusDay - 1 + 7) % 7)"
                    @keydown.end.prevent="moveFocus(6 - ((focusDay - 1 + 7) % 7))"
-                   @keydown.page-down.prevent="navMonth(1)"
-                   @keydown.page-up.prevent="navMonth(-1)"
+                   @keydown.page-down.prevent="$event.shiftKey ? navYear(1) : navMonth(1)"
+                   @keydown.page-up.prevent="$event.shiftKey ? navYear(-1) : navMonth(-1)"
                    @keydown.enter.prevent="pickFocused()"
                    @keydown.space.prevent="pickFocused()">
                 <template x-for="week in weeks()" :key="week.idx">
@@ -337,14 +345,32 @@
                             if (this.focusDay > max) this.focusDay = max;
                         },
 
+                        navYear(delta) {
+                            this.viewYear += delta;
+                            const max = daysInMonth(this.viewYear, this.viewMonth);
+                            if (this.focusDay > max) this.focusDay = max;
+                        },
+
                         // Move the focused day by ±N days, crossing month
-                        // boundaries by changing viewMonth/viewYear.
+                        // boundaries by changing viewMonth/viewYear. Skips
+                        // over disabled cells in the same direction so the
+                        // user never lands on a non-pickable target.
                         moveFocus(delta) {
-                            const cur = new Date(this.viewYear, this.viewMonth, this.focusDay);
-                            cur.setDate(cur.getDate() + delta);
-                            this.viewYear = cur.getFullYear();
-                            this.viewMonth = cur.getMonth();
-                            this.focusDay = cur.getDate();
+                            if (delta === 0) return;
+                            const step = delta > 0 ? 1 : -1;
+                            const dest = new Date(this.viewYear, this.viewMonth, this.focusDay);
+                            dest.setDate(dest.getDate() + delta);
+                            // Walk in the original direction over disabled
+                            // cells · bail after a year's worth of probing
+                            // so we don't loop forever on a fully-disabled
+                            // range.
+                            for (let guard = 0; guard < 366; guard++) {
+                                if (!this.outOfRange(dest.getFullYear(), dest.getMonth(), dest.getDate())) break;
+                                dest.setDate(dest.getDate() + step);
+                            }
+                            this.viewYear = dest.getFullYear();
+                            this.viewMonth = dest.getMonth();
+                            this.focusDay = dest.getDate();
                         },
 
                         focusIso(iso) {

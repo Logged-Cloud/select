@@ -327,6 +327,76 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── R.A.P pass on v3.0-v3.5 (v3.6) ────────────────────────────────
+
+test('color-palette uses a luminance guard so the checkmark stays visible', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/color-palette-alpine.blade.php');
+    expect($tpl)
+        ->toContain('isLight(color)')
+        // ITU-R BT.709 weights · gives a real luminance, not a naive avg.
+        ->and($tpl)->toContain('0.2126 * r')
+        ->and($tpl)->toContain('0.7152 * g')
+        ->and($tpl)->toContain('0.0722 * b')
+        ->and($tpl)->toContain("'lc-color__check--dark'");
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)->toContain('.lc-color__check--dark');
+});
+
+test('rating-alpine aria-valuetext uses singular form for value === 1', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/rating-alpine.blade.php');
+    expect($tpl)
+        ->toContain("'star' => 'star'")
+        ->and($tpl)->toContain("value === 1 ? (a11y.star || 'star') : (a11y.stars || 'stars')");
+});
+
+test('date-alpine gains year-jump nav (« »  buttons + shift-PageUp/Down)', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-alpine.blade.php');
+    expect($tpl)
+        ->toContain('navYear(-1)')
+        ->and($tpl)->toContain('navYear(1)')
+        ->and($tpl)->toContain('$event.shiftKey ? navYear(1) : navMonth(1)')
+        ->and($tpl)->toContain('$event.shiftKey ? navYear(-1) : navMonth(-1)');
+});
+
+test('date-alpine moveFocus skips disabled cells in the requested direction', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/date-alpine.blade.php');
+    expect($tpl)
+        ->toContain('for (let guard = 0; guard < 366; guard++)')
+        ->and($tpl)->toContain('this.outOfRange(dest.getFullYear(), dest.getMonth(), dest.getDate())');
+});
+
+test('map-pin-alpine has keyboard placement via a ghost cursor', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/map-pin-alpine.blade.php');
+    expect($tpl)
+        ->toContain('ghost: null')
+        ->and($tpl)->toContain('ensureGhost()')
+        ->and($tpl)->toContain('commitGhost()')
+        ->and($tpl)->toContain('moveGhost(0, -keyStep')
+        ->and($tpl)->toContain('@keydown.enter.prevent="commitGhost()"')
+        ->and($tpl)->toContain('@keydown.delete.prevent="clearPin()"')
+        // The SVG must be focusable for keyboard to work at all.
+        ->and($tpl)->toContain('tabindex="{{ $disabled ? \'-1\' : \'0\' }}"');
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)
+        ->toContain('.lc-map__pin-ghost-ring')
+        ->and($css)->toContain('.lc-map--pinnable:focus-visible');
+});
+
+test('tree-alpine memoises ancestor lookup via _parentOf', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/tree-alpine.blade.php');
+    expect($tpl)
+        ->toContain('this._parentOf = new Array(this.flat.length)')
+        // isVisible() is the hot path · must walk the precomputed map,
+        // not the O(N) backwards scan that the old version used. The
+        // backwards scan can still live in _expandAncestors (init-time).
+        ->and($tpl)->toContain('let p = this._parentOf ? this._parentOf[idx] : -1');
+    // Verify the isVisible method body itself doesn't backwards-scan.
+    $methodStart = strpos($tpl, 'isVisible(idx)');
+    $methodEnd = strpos($tpl, '},', $methodStart);
+    $body = substr($tpl, $methodStart, $methodEnd - $methodStart);
+    expect($body)->not->toContain('idx - 1');
+});
+
 // ─── date-alpine · calendar grid picker (v3.5) ─────────────────────
 
 test('date-alpine renders role=dialog + role=grid with proper aria', function () {
@@ -343,8 +413,8 @@ test('date-alpine ships month-nav + Page Up/Down + arrow keyboard handlers', fun
     expect($tpl)
         ->toContain('@keydown.arrow-right.prevent="moveFocus(1)"')
         ->and($tpl)->toContain('@keydown.arrow-down.prevent="moveFocus(7)"')
-        ->and($tpl)->toContain('@keydown.page-down.prevent="navMonth(1)"')
-        ->and($tpl)->toContain('@keydown.page-up.prevent="navMonth(-1)"')
+        ->and($tpl)->toContain('@keydown.page-down.prevent="$event.shiftKey ? navYear(1) : navMonth(1)"')
+        ->and($tpl)->toContain('@keydown.page-up.prevent="$event.shiftKey ? navYear(-1) : navMonth(-1)"')
         ->and($tpl)->toContain('@keydown.home.prevent')
         ->and($tpl)->toContain('@keydown.end.prevent');
 });

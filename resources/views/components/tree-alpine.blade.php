@@ -243,6 +243,23 @@
                         },
 
                         init() {
+                            // Pre-compute each node's parent index once so
+                            // isVisible() is O(depth) lookups instead of an
+                            // O(depth) backwards scan per call · for a tree
+                            // of N nodes that's a real win on every render.
+                            this._parentOf = new Array(this.flat.length).fill(-1);
+                            for (let i = 0; i < this.flat.length; i++) {
+                                const node = this.flat[i];
+                                if (node.depth === 0) continue;
+                                for (let p = i - 1; p >= 0; p--) {
+                                    if (this.flat[p].depth === node.depth - 1) {
+                                        this._parentOf[i] = p;
+                                        break;
+                                    }
+                                    if (this.flat[p].depth < node.depth - 1) break;
+                                }
+                            }
+
                             // Default-expand the first N depths so a fresh
                             // open already shows some structure.
                             for (const node of this.flat) {
@@ -308,20 +325,14 @@
                             return this.listboxId + '__row-' + window.lcSafeId(this.flat[idx].key);
                         },
 
-                        // Walk ancestors · a row is hidden if ANY ancestor is collapsed.
+                        // Walk ancestors via the precomputed _parentOf map ·
+                        // O(depth) lookups, no backwards scan over siblings.
                         isVisible(idx) {
-                            const node = this.flat[idx];
-                            if (!node) return false;
-                            if (node.depth === 0) return true;
-                            // Find ancestor chain by walking up.
-                            let depth = node.depth;
-                            for (let p = idx - 1; p >= 0 && depth > 0; p--) {
-                                const r = this.flat[p];
-                                if (r.depth === depth - 1) {
-                                    if (!this.expanded[r.idx]) return false;
-                                    depth--;
-                                }
-                                if (r.depth < depth - 1) return false;
+                            if (!this.flat[idx]) return false;
+                            let p = this._parentOf ? this._parentOf[idx] : -1;
+                            while (p >= 0) {
+                                if (!this.expanded[this.flat[p].idx]) return false;
+                                p = this._parentOf[p];
                             }
                             return true;
                         },
