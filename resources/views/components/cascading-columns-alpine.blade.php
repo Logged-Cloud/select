@@ -152,7 +152,10 @@
                                 if (!this._childMap.has(n.parent)) this._childMap.set(n.parent, []);
                                 this._childMap.get(n.parent).push(n.idx);
                             }
-                            this.activeIdxs = [this.rootIdxs[0] ?? -1];
+                            // Guard against an empty items array · no roots
+                            // means no first-column active row and the keyboard
+                            // handlers would crash on undefined idxs.
+                            this.activeIdxs = this.rootIdxs.length > 0 ? [this.rootIdxs[0]] : [];
                             // If a value is preselected, walk down to expand
                             // the matching column path.
                             if (this.value) {
@@ -204,6 +207,10 @@
                             const kids = this._childMap.get(idx) || [];
                             this.activeIdxs = this.activeIdxs.slice(0, col + 1);
                             if (kids.length > 0) this.activeIdxs.push(kids[0]);
+                            // Announce the column open so screen-reader users
+                            // hear that a new column appeared without losing
+                            // focus context.
+                            this.liveMessage = 'Opened ' + node.title + ': ' + kids.length + ' items';
                         },
 
                         moveActive(col, delta) {

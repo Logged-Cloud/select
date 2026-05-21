@@ -71,14 +71,17 @@
                 $safe = preg_replace('/[^a-zA-Z0-9_-]/', '_', $opt['key']);
                 $cardId = $triggerId.'__card-'.$safe;
             @endphp
+            {{-- Only the top card + the two peeking below are kept in the
+                 layout · x-if (server-rendered conditional via x-show on a
+                 narrow band) drops the DOM weight from N to 3 for big decks. --}}
             <div id="{{ $cardId }}"
                  class="lc-deck__card"
                  :class="{
                      'is-top': cursor === {{ $i }},
                      'is-next': cursor + 1 === {{ $i }},
                      'is-after': cursor + 2 === {{ $i }},
-                     'is-gone-right': lastDir === 'right' && {{ $i }} < cursor,
-                     'is-gone-left':  lastDir === 'left'  && {{ $i }} < cursor,
+                     'is-gone-right': lastDir === 'right' && {{ $i }} === cursor - 1,
+                     'is-gone-left':  lastDir === 'left'  && {{ $i }} === cursor - 1,
                  }"
                  x-show="{{ $i }} >= cursor - 1 && {{ $i }} <= cursor + 2"
                  :style="cursor === {{ $i }} && drag ? ('transform: translate(' + drag.dx + 'px,' + drag.dy + 'px) rotate(' + (drag.dx / 18) + 'deg)') : ''"
@@ -215,20 +218,33 @@
                         onPointerDown(e) {
                             if (this.cursor >= this.items.length) return;
                             const startX = e.clientX, startY = e.clientY;
+                            const startCursor = this.cursor;
                             const target = e.currentTarget;
                             try { target.setPointerCapture(e.pointerId); } catch (_) {}
                             this.drag = { dx: 0, dy: 0 };
                             const move = (ev) => {
+                                // If cursor advanced via keyboard / button mid-
+                                // drag, ignore subsequent moves on the stale
+                                // target · prevents a dragged-out card from
+                                // animating back via stale state.
+                                if (this.cursor !== startCursor) return;
                                 this.drag = { dx: ev.clientX - startX, dy: ev.clientY - startY };
                             };
-                            const up = (ev) => {
+                            const cleanup = () => {
                                 target.removeEventListener('pointermove', move);
                                 target.removeEventListener('pointerup', up);
                                 target.removeEventListener('pointercancel', up);
-                                if (!this.drag) return;
+                                try { target.releasePointerCapture(e.pointerId); } catch (_) {}
+                            };
+                            const up = () => {
+                                cleanup();
+                                if (this.cursor !== startCursor || !this.drag) {
+                                    this.drag = null;
+                                    return;
+                                }
                                 if (this.drag.dx > this.threshold) this.accept();
                                 else if (this.drag.dx < -this.threshold) this.skip();
-                                else this.drag = null;   // snap back
+                                else this.drag = null;
                             };
                             target.addEventListener('pointermove', move);
                             target.addEventListener('pointerup', up);

@@ -158,7 +158,17 @@
 .lc-rank__row.is-dragging { opacity: .4; cursor: grabbing; }
 .lc-rank__row.is-over { border-color: var(--lc-accent); }
 .lc-rank__row:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: 2px; }
-.lc-rank__handle { color: var(--lc-ink-dim); cursor: grab; display: inline-grid; place-items: center; }
+.lc-rank__handle {
+    color: var(--lc-ink-dim);
+    cursor: grab;
+    display: inline-grid;
+    place-items: center;
+    /* touch-action: none on the handle (not the whole row) so the user
+       can scroll the page by tapping anywhere else in a row, but pressing
+       the handle reliably starts a drag on touch devices. */
+    touch-action: none;
+    padding: .25rem;
+}
 .lc-rank__index {
     font-variant-numeric: tabular-nums;
     color: var(--lc-ink-dim);

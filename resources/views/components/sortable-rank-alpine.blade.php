@@ -182,6 +182,9 @@
                             if (from < 0 || to < 0) return;
                             this.order.splice(from, 1);
                             this.order.splice(to, 0, this.dragKey);
+                            // Announce the new position so screen readers
+                            // tracking the dragged item hear where it is.
+                            this.liveMessage = this.titleOf(this.dragKey) + ' at position ' + (to + 1);
                         },
 
                         onDrop() {

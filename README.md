@@ -40,6 +40,12 @@ A family of accessible select widgets for Laravel apps. Each component name spel
 
 Naming convention is **`<behaviour>-<driver>`**: behaviour first (`searchable`, `multi`, `radio-grid`, `card-multi`, `tags`, …), driver second (`alpine`, `livewire`, ...). Future entries (`remote-livewire` for server-side search, `native` for a no-JS fallback, …) slot in alongside without forcing a new `composer require`.
 
+### v3.9 highlights · R.A.P pass on the v3.8 family
+
+- **Robust** · swipe-deck pointer-capture cleans up + guards against a stale cursor (if the user advances via keyboard mid-drag, the dragged card no longer animates back from stale state); cascading-columns guards against an empty `rootIdxs` so an empty `items` array doesn't crash the init.
+- **Accessible** · cascading-columns announces column-opens on the live region ("Opened Animals: 2 items"); sortable-rank announces drag-over reorders ("Feeding at position 3") so screen-reader users tracking a drag hear where it lands; image-region gains arrow / Home / End / Enter keyboard navigation (was mouse-only).
+- **Performance** · sortable-rank handle gains `touch-action: none` so mobile drag actually starts the drag rather than scrolling the page. swipe-deck's `x-show` band already capped the render to 3 cards — confirmed via the gone-band rule (`cursor - 1` only).
+
 ### v3.8 highlights · five new selection paradigms
 
 Five variants that introduce genuinely new selection mechanics, not just visual variants of a list.
