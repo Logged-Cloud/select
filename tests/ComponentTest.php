@@ -327,6 +327,49 @@ test('styles ship a 640px bottom-sheet block', function () {
         ->and($css)->toContain('env(safe-area-inset-bottom');
 });
 
+// ─── R.A.P pass on v3.8 (v3.9) ─────────────────────────────────────
+
+test('swipe-deck pointermove guards against stale cursor + cleans up capture', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/swipe-deck-alpine.blade.php');
+    expect($tpl)
+        ->toContain('const startCursor = this.cursor')
+        ->and($tpl)->toContain('if (this.cursor !== startCursor) return')
+        ->and($tpl)->toContain('releasePointerCapture');
+});
+
+test('cascading-columns guards against empty rootIdxs at init', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/cascading-columns-alpine.blade.php');
+    expect($tpl)->toContain('this.rootIdxs.length > 0 ? [this.rootIdxs[0]] : []');
+});
+
+test('cascading-columns announces column-open on the live region', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/cascading-columns-alpine.blade.php');
+    expect($tpl)
+        ->toContain("this.liveMessage = 'Opened '")
+        ->and($tpl)->toContain('kids.length');
+});
+
+test('sortable-rank announces drag-over reorders, not just button clicks', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/sortable-rank-alpine.blade.php');
+    expect($tpl)
+        ->toContain('at position ')
+        ->and($tpl)->toContain('this.liveMessage = this.titleOf(this.dragKey)');
+});
+
+test('image-region gains arrow / Home / End / Enter keyboard nav', function () {
+    $tpl = file_get_contents(__DIR__.'/../resources/views/components/image-region-alpine.blade.php');
+    expect($tpl)
+        ->toContain('@keydown.arrow-right.prevent="moveBy(1)"')
+        ->and($tpl)->toContain('@keydown.home.prevent="cursor = 0"')
+        ->and($tpl)->toContain('@keydown.enter.prevent="pickAt(cursor)"')
+        ->and($tpl)->toContain('moveBy(delta)');
+});
+
+test('sortable-rank handle uses touch-action:none for mobile drag start', function () {
+    $css = file_get_contents(__DIR__.'/../resources/views/styles.blade.php');
+    expect($css)->toMatch('/\.lc-rank__handle\s*{[^}]*touch-action:\s*none/s');
+});
+
 // ─── likert / sortable / swipe / cascading / image-region (v3.8) ───
 
 test('likert-alpine is a role=radiogroup with arrow + Home/End keyboard nav', function () {

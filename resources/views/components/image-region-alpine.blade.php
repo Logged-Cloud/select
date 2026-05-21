@@ -100,10 +100,22 @@
 
     <div x-show="open" x-cloak x-transition.opacity.duration.100ms class="lc-select__menu lc-select__menu--map">
         <div class="lc-select__sheet-handle" aria-hidden="true"></div>
+        {{-- The SVG is tabindex=0 so keyboard nav works without focusing a
+             specific path · arrow keys cycle through regions and Enter
+             commits. Without this, image-region was mouse-only. --}}
         <svg id="{{ $svgId }}" role="listbox" viewBox="{{ $viewBox }}"
              class="lc-image-region {{ $showOutlines ? '' : 'lc-image-region--no-outline' }}"
              preserveAspectRatio="xMidYMid meet"
-             @if ($label) aria-label="{{ $label }}" @else aria-label="{{ $placeholder }}" @endif>
+             tabindex="{{ $disabled ? '-1' : '0' }}"
+             @if ($label) aria-label="{{ $label }}" @else aria-label="{{ $placeholder }}" @endif
+             @keydown.arrow-right.prevent="moveBy(1)"
+             @keydown.arrow-down.prevent="moveBy(1)"
+             @keydown.arrow-left.prevent="moveBy(-1)"
+             @keydown.arrow-up.prevent="moveBy(-1)"
+             @keydown.home.prevent="cursor = 0"
+             @keydown.end.prevent="cursor = items.length - 1"
+             @keydown.enter.prevent="pickAt(cursor)"
+             @keydown.space.prevent="pickAt(cursor)">
             @if ($src)
                 <image href="{{ $src }}"
                        x="0" y="0"
@@ -190,6 +202,11 @@
                                 this._lockedScroll = false;
                             }
                             this.$nextTick(() => this.$refs.trigger?.focus());
+                        },
+
+                        moveBy(delta) {
+                            const max = this.items.length - 1;
+                            this.cursor = Math.max(0, Math.min(this.cursor + delta, max));
                         },
 
                         pickAt(i) {
